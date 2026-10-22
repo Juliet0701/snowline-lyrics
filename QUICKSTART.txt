@@ -1,0 +1,16 @@
+Snowline Lyrics 0.1.0 · Windows x64 便携测试版
+
+完整解压整个文件夹，然后双击 SnowlineLyrics.exe。
+在音乐软件中播放歌曲。拖动歌词板顶部移动，拖动边缘调整大小。
+置顶按钮可切换置顶；“设置”可选择播放器、确认歌词版本、校准时间或导入 LRC。
+× 只隐藏歌词板。双击托盘图标恢复，右键托盘选择“退出”。
+
+需要 Windows 10/11 x64、.NET Framework 4.8 和提供系统媒体进度的播放器。
+已验证 Windows 11 上的 YouTube Music Chrome PWA，其他软件需实际验证。
+自动查歌词需要联网；并非每首歌都能匹配。本版没有音频识曲。
+无需 Node、DeepSeek Harness、浏览器扩展或音乐账号登录。
+本版未签名，没有自动更新。
+
+代码采用 MIT 许可证；歌词及第三方运行时权利另见 THIRD-PARTY-NOTICES.md。
+隐私详见 PRIVACY.md。本机数据保存在 %APPDATA%/SnowlineLyrics。
+分享这个完整文件夹或原始压缩包即可，勿附带个人数据目录。
