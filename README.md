@@ -2,13 +2,13 @@
 
 A floating lyric board for Windows. System media sessions → timestamped lyrics → a quiet desktop overlay.
 
-一块独立的桌面歌词板：读取 Windows 播放器信息，自动查找同步歌词，无需浏览器扩展或 DeepSeek Harness。
+一款独立的 Windows 桌面歌词应用：读取播放器信息，自动查找同步歌词，以可拖动、可置顶的歌词板显示。
 
 ![歌词板预览：原创演示文字](docs/board-preview.png)
 
 ## 使用
 
-1. 下载发布页提供的 `Snowline-Lyrics-0.1.0-win-x64.zip` 便携包，完整解压。
+1. 从 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.1.0-win-x64.zip` 便携包，完整解压。
 2. 双击 `SnowlineLyrics.exe`，在音乐软件中播放歌曲。
 3. 拖动歌词板顶部移动窗口，拖动边缘调整大小；可切换置顶。点击“设置”可选择播放器、确认歌词版本、调整时间偏移或导入自己的 `.lrc`。
 
@@ -33,7 +33,7 @@ A floating lyric board for Windows. System media sessions → timestamped lyrics
 
 **MIT 许可证仅适用于本仓库自有代码和文档。歌词、歌曲、艺人信息及第三方软件的权利不因此转移。** 仓库不捆绑真实歌曲歌词或音乐文件；用户应遵守适用的内容权利及服务规则，勿将下载的歌词缓存提交到公开仓库。
 
-本项目与 YouTube、Google、Microsoft、LRCLIB、DeepSeek 或 dsh-pet 的权利人没有隶属或官方背书关系。产品及公司名称属于各自权利人。第三方运行时及开发依赖见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+本项目与 YouTube、Google、Microsoft 或 LRCLIB 没有隶属或官方背书关系。产品及公司名称属于各自权利人。第三方运行时及开发依赖见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
 ## 本地开发
 
@@ -63,4 +63,4 @@ Compress-Archive -LiteralPath dist/Snowline-Lyrics-0.1.0-win-x64 -DestinationPat
 
 自有代码采用 [MIT](LICENSE)。开发贡献、漏洞报告及发布步骤分别见 [CONTRIBUTING.md](CONTRIBUTING.md)、[SECURITY.md](SECURITY.md) 和 [GitHub 发布指南](docs/PUBLISHING.md)。本仓库包含仅验证与打包的 GitHub Actions，不会自动公开发布版本。
 
-这是从独立歌词原型抽取出的纯歌词板项目，不包含 dsh-pet 的源码、人物素材、动画或配置。开发时使用了 AI 编程辅助；功能、依赖和发布内容仍需维护者审核。
+项目仓库：[Juliet0701/snowline-lyrics](https://github.com/Juliet0701/snowline-lyrics)。开发时使用了 AI 编程辅助；功能、依赖和发布内容仍需维护者审核。

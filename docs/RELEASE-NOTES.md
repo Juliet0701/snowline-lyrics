@@ -4,7 +4,7 @@
 
 - 可拖动、调整大小、置顶的独立歌词板。
 - 托盘设置、播放器选择、版本确认、时间偏移和本地 LRC 导入。
-- 独立数据目录，无需浏览器扩展、DeepSeek Harness、Node 或 API Key。
+- 独立数据目录，无需浏览器扩展、Node 或 API Key。
 
 Windows x64 便携测试版。完整解压后运行 `SnowlineLyrics.exe`。× 隐藏歌词板；双击托盘恢复，右键托盘退出。
 

@@ -2,7 +2,7 @@
 
 ## Project code
 
-Snowline Lyrics application code, the read-only C# media reader and the simple geometric icon are maintained as this project's own work under the repository's MIT LICENSE. The code was extracted from the author's independent lyrics prototype. This edition includes no dsh-pet source code, helper runtime, character art, animations or configuration files.
+Snowline Lyrics application code, the read-only C# media reader and the simple geometric icon are maintained as this project's own work under the repository's MIT LICENSE. The application is a standalone lyric board. Its source package contains the application, tests, documentation and original geometric icon.
 
 ## Electron runtime
 
@@ -35,4 +35,4 @@ This project's MIT license does not license or grant rights in retrieved lyrics 
 
 ## Names and affiliation
 
-YouTube, YouTube Music, Google, Microsoft, Windows, DeepSeek, dsh-pet and other product or company names belong to their respective owners. This independent project is not affiliated with, endorsed by, or an official client of those owners or LRCLIB. Names are used only to explain compatibility and provenance.
+YouTube, YouTube Music, Google, Microsoft, Windows and other product or company names belong to their respective owners. This independent project is not affiliated with, endorsed by, or an official client of those owners or LRCLIB. Names are used only to explain compatibility and identify third-party services.

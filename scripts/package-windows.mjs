@@ -27,4 +27,4 @@ async function audit(dir){for(const f of await readdir(dir,{withFileTypes:true})
  if(f.isDirectory())await audit(join(dir,f.name));else count++;
 }}
 await audit(out);await writeFile(join(out,'BUILD.json'),JSON.stringify({app:pkg.productName,version:pkg.version,electron:version,platform:'win32-x64',files:count,personalDataIncluded:false},null,2));
-console.log(`Portable package: ${out}\n${count} files; no production npm dependencies, pet assets, or personal state.`);
+console.log(`Portable package: ${out}\n${count} files; no production npm dependencies or personal state.`);
