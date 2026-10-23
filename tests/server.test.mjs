@@ -23,7 +23,8 @@ test('authenticated integration: pair, song-bind LRC, pause, seek, switch, rejec
     assert.equal((await call('/api/playback',{...p,capturedAt:p.capturedAt-1})).status,409);
     assert.equal((await call('/api/playback',{...p,trackId:'youtube:two',capturedAt:p.capturedAt+2})).status,200);
     state=await (await call('/api/state')).json(); assert.deepEqual(state.lines,[]);
-    assert.equal((await call('/api/lrc',{trackId:'youtube:two',lrc:'没有时间戳'})).status,400);
+    assert.equal((await call('/api/lrc',{trackId:'youtube:two',lrc:'没有时间戳'})).status,200);
+    state=await (await call('/api/state')).json();assert.equal(state.mode,'plain');assert.equal(state.text,'没有时间戳');
     assert.equal((await call('/api/offset',{offsetMs:Infinity})).status,400);
     assert.equal((await call('/api/demo',{})).status,200);
     state=await (await call('/api/state')).json(); assert.equal(state.demo,true); assert.ok(state.lines.length);

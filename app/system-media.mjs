@@ -3,9 +3,9 @@ import {spawn} from 'node:child_process';
 import {createInterface} from 'node:readline';
 
 export function chooseSession(sessions,preferred='auto') {
-  const available=sessions.filter(s=>s && typeof s.id==='string' && typeof s.title==='string' && s.title.trim());
+  const available=sessions.filter(s=>s && s.playbackStatus!=='Closed'&&typeof s.id==='string' && typeof s.title==='string' && s.title.trim());
   if(preferred!=='auto')return available.find(s=>s.id===preferred)||null;
-  return available.find(s=>!s.paused && s.timelineValid && s.artist) || available.find(s=>!s.paused && s.timelineValid)
+  return available.find(s=>!s.paused && s.artist) || available.find(s=>!s.paused && s.timelineValid)||available.find(s=>!s.paused)
     ||available.find(s=>s.isCurrent && s.timelineValid && s.artist)||available.find(s=>s.timelineValid && s.artist)
     ||available.find(s=>s.isCurrent)||available[0]||null;
 }
@@ -18,7 +18,8 @@ export function mediaSample(session,now=Date.now()) {
   }
   const signature=JSON.stringify([title.toLowerCase(),artist.toLowerCase(),Math.round(session.durationMs/1000)]);
   return {source:`system:${session.id}`.slice(0,160),trackId:`system:${createHash('sha256').update(signature).digest('hex').slice(0,32)}`,
-    title,artist,durationMs:session.timelineValid?session.durationMs:0,positionMs:session.timelineValid?session.positionMs:0,
+    title,artist,durationMs:Number.isFinite(session.durationMs)?session.durationMs:0,positionMs:session.timelineValid?session.positionMs:0,
+    timelineAvailable:!!session.timelineValid,pauseKnown:session.pauseKnown===true||['Playing','Paused','Stopped'].includes(session.playbackStatus)||(!session.playbackStatus&&session.pauseKnown!==false),
     paused:!!session.paused,rate:session.rate>0?session.rate:1,seeking:false,ad:false,capturedAt:now};
 }
 function label(appId){
@@ -39,14 +40,13 @@ export function createSystemAdapter({onPlayback,onClear,executable,preferred='au
     const current=chooseSession(state.sessions,state.preferred);state.selectedId=current?.id||null;
     if(frame.status==='error'){state.status='error';state.message=frame.message||'Windows 媒体读取失败';onClear();return;}
     if(!current){state.status='empty';state.message=state.preferred==='auto'?'打开任意播放器并播放音乐，即可自动连接。':'所选播放器已关闭，可切回自动选择。';onClear();return;}
-    if(!current.timelineValid){state.status='unsupported';state.message='此播放器没有提供有效进度，暂时无法同步歌词。';onClear();return;}
-    state.status='ready';state.message=current.artist?'已连接系统媒体会话':'播放器未提供歌手信息，歌词可能需要手动确认版本。';
+    state.status=current.timelineValid?'ready':'metadata-only';state.message=!current.timelineValid?'已读取歌曲；播放器未提供进度，可在设置中点选歌词手动对齐。':current.artist?'已连接系统媒体会话':'播放器未提供歌手信息，歌词可能需要手动确认版本。';
     onPlayback(mediaSample(current));
   }
   try{
     child=spawnImpl(executable,['--parent',String(process.pid)],{windowsHide:true,stdio:['ignore','pipe','pipe']});
     const lines=createInterface({input:child.stdout});
-    lines.on('line',line=>{if(line.length>512*1024)return;try{apply(JSON.parse(line));}catch(e){state.status='error';state.message='媒体信息格式错误：'+e.message;}});
+    lines.on('line',line=>{if(line.length>512*1024)return;try{apply(JSON.parse(line));}catch(e){state.status='error';state.message='媒体信息格式错误：'+e.message;onClear();}});
     child.stderr.on('data',()=>{});
     child.on('error',e=>{state.status='error';state.message='系统媒体组件启动失败：'+e.message;onClear();});
     child.on('exit',()=>{if(!closing){state.status='error';state.message='系统媒体读取已停止，请重新打开应用。';onClear();}});

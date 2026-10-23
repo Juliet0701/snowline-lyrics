@@ -27,7 +27,8 @@ internal static class MediaReader {
     if(valid && playing) position+=Math.Max(0,now-updated)*rate;
     position=Math.Max(0,Math.Min(position,Math.Max(0,duration)));
     return new { id=id,appId=session.SourceAppUserModelId,isCurrent=current,title=Trim(properties.Title),artist=Trim(properties.Artist),album=Trim(properties.AlbumTitle),
-      durationMs=valid?duration:0,positionMs=valid?position:0,paused=!playing,rate=rate,timelineValid=valid,
+      durationMs=duration>0 && duration<=86400000?duration:0,positionMs=valid?position:0,paused=!playing,rate=rate,timelineValid=valid,
+      pauseKnown=playing || info.PlaybackStatus==GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused,
       timelineUpdatedAt=updated,rawPositionMs=timeline.Position.TotalMilliseconds,playbackStatus=info.PlaybackStatus.ToString(),capturedAt=now };
   }
   static async Task<int> Run(string[] args) {

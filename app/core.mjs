@@ -55,6 +55,11 @@ export function normalizePlayback(value, receivedAt = Date.now()) {
     positionMs: Math.min(value.positionMs, 24 * 3600000),
     durationMs: Number.isFinite(value.durationMs) ? Math.max(0, Math.min(value.durationMs, 24 * 3600000)) : 0,
     rate, paused: value.paused, seeking: value.seeking === true, ad: value.ad === true,
+    timelineAvailable: value.timelineAvailable !== false, pauseKnown: value.pauseKnown !== false,
     capturedAt: value.capturedAt, receivedAt
   };
+}
+
+export function plainLyrics(input) {
+  return String(input||'').replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').replace(/\u0000/g,'').trim().slice(0,400*1024);
 }

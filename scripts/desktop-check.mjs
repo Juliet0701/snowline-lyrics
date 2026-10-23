@@ -11,7 +11,7 @@ const exe=packaged||process.env.SNOWLINE_ELECTRON||require('electron');
 const results=join(root,'test-results');await mkdir(results,{recursive:true});await mkdir(join(root,'.local'),{recursive:true});
 const data=await mkdtemp(join(root,'.local','board-test-'));
 const port=Number(process.env.SNOWLINE_TEST_PORT||18748);
-const env={...process.env,SNOWLINE_LYRICS_TEST_DATA:data,SNOWLINE_LYRICS_TEST_DEBUG_PORT:String(port),SNOWLINE_LYRICS_TEST_QUIT_MS:'22000',SNOWLINE_LYRICS_TEST_FIXTURE:'1'};
+const env={...process.env,SNOWLINE_LYRICS_TEST_DATA:data,SNOWLINE_LYRICS_TEST_DEBUG_PORT:String(port),SNOWLINE_LYRICS_TEST_QUIT_MS:'43000',SNOWLINE_LYRICS_TEST_FIXTURE:'1'};
 delete env.ELECTRON_RUN_AS_NODE;if(packaged)env.PATH=join(process.env.WINDIR,'System32');
 const child=spawn(exe,packaged?[]:[root],{cwd:packaged?dirname(packaged):root,windowsHide:true,env,stdio:['ignore','pipe','pipe']});
 let log='',browser;child.stdout.on('data',d=>log+=d);child.stderr.on('data',d=>log+=d);
@@ -40,9 +40,33 @@ try{
  await board.screenshot({path:join(results,packaged?'portable-board.png':'board.png'),omitBackground:true});
  await settings.screenshot({path:join(results,packaged?'portable-settings.png':'settings.png')});
  const metrics=await board.evaluate(()=>{const s=document.querySelector('section');return{height:innerHeight,sectionHeight:s.clientHeight,scrollHeight:s.scrollHeight};});assert.ok(metrics.sectionHeight>30);assert.deepEqual(errors,[]);
- console.log('Desktop passed: standalone board, settings, pause/seek, pin IPC, local LRC import, timing offset, sandbox, original-text screenshots.');
+ async function sample(title,trackId,timelineAvailable){await board.evaluate(async({title,trackId,timelineAvailable})=>{const b=await(await fetch('/api/bootstrap')).json();await fetch('/api/playback',{method:'POST',headers:{'Content-Type':'application/json','X-Lyrics-Token':b.token},body:JSON.stringify({source:'fixture:qq',trackId,title,artist:'原创测试作者',durationMs:120000,positionMs:0,timelineAvailable,pauseKnown:false,paused:false,capturedAt:Date.now()})});},{title,trackId,timelineAvailable});}
+ await settings.locator('#offset').fill('0');await settings.locator('#offset').dispatchEvent('change');
+ await sample('手动对齐演示','test:manual',false);
+ await settings.waitForFunction(()=>!document.querySelector('#manual-panel').hidden&&document.querySelectorAll('.lyric-choice').length===3);
+ await settings.locator('.lyric-choice').nth(1).click();await settings.locator('#align-start').click();
+ await board.waitForFunction(()=>document.querySelector('#current')?.textContent==='原创第二句');
+ await board.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('手动对齐'));
+ await board.screenshot({path:join(results,packaged?'portable-manual.png':'manual.png'),omitBackground:true});
+ await settings.locator('#manual-toggle').click();await board.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('已暂停'));
+ await sample('手动对齐演示','test:manual',false);await board.waitForFunction(()=>document.querySelector('#status')?.textContent.includes('已暂停'));
+ await settings.screenshot({path:join(results,packaged?'portable-manual-settings.png':'manual-settings.png')});
+ await sample('普通歌词演示','test:plain',false);
+ await board.waitForFunction(()=>!document.querySelector('#full-text').hidden&&document.querySelector('#full-text').textContent.includes('第 35 行'));
+ const full=board.locator('#full-text');await full.evaluate(el=>el.scrollTop=100);await board.waitForTimeout(700);assert.ok(await full.evaluate(el=>el.scrollTop)>0,'Polling preserves reading scroll');
+ await board.screenshot({path:join(results,packaged?'portable-plain.png':'plain.png'),omitBackground:true});
+ await board.waitForTimeout(3100);await board.locator('#reload').click();await board.waitForFunction(()=>document.querySelector('#reload').getAttribute('aria-busy')==='true');await board.waitForFunction(()=>document.querySelector('#reload').getAttribute('aria-busy')==='false');
+ await board.waitForFunction(()=>document.querySelector('#status').textContent.includes('已加载'));
+ await settings.locator('#sync-backup').check();await settings.waitForFunction(()=>document.querySelector('#sync-backup-result').textContent.includes('已开启'));
+ await board.waitForTimeout(3100);await board.locator('#reload').click();await settings.waitForFunction(()=>[...document.querySelectorAll('.version')].some(x=>x.textContent.includes('lrcapi')));
+ const second=settings.locator('.version').filter({hasText:'lrcapi'}).first();await second.click();
+ await settings.waitForFunction(()=>!document.querySelector('#manual-panel').hidden);await settings.locator('.lyric-choice').first().click();await settings.locator('#align-start').click();
+ await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二源第一句');
+ await board.screenshot({path:join(results,packaged?'portable-second-source.png':'second-source.png'),omitBackground:true});
+ assert.equal(await board.locator('nav button').first().getAttribute('id'),'reload');assert.deepEqual(errors,[]);
+ console.log('Desktop passed: old features plus metadata-only manual alignment, pause/heartbeat preservation, scrollable plain lyrics, preserved scroll, reload loading/result and button order.');
  assert.equal(await exit,0);console.log('Clean normal shutdown.');
 }finally{
- if(child.exitCode===null){await Promise.race([exit,new Promise(r=>setTimeout(r,26000))]);if(child.exitCode===null)child.kill();}
+ if(child.exitCode===null){await Promise.race([exit,new Promise(r=>setTimeout(r,46000))]);if(child.exitCode===null)child.kill();}
  await browser?.close().catch(()=>{});await writeFile(join(results,packaged?'portable-log.txt':'desktop-log.txt'),log);
 }

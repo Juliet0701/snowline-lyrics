@@ -11,7 +11,7 @@ test('matching strips technical labels, requires artist/duration agreement, pres
   assert.equal(chooseAutomatic(rankCandidates([row],{...playback,durationMs:0})),null);
 });
 test('plain lyrics cannot masquerade as synced; conflicting same-recording timelines need selection',()=>{
-  assert.equal(rankCandidates([{...row,syncedLyrics:null,plainLyrics:'只有文字'}],playback).length,0);
+  const plain=rankCandidates([{...row,syncedLyrics:null,plainLyrics:'只有文字'}],playback);assert.equal(plain[0].kind,'plain');assert.deepEqual(plain[0].lines,[]);assert.equal(plain[0].text,'只有文字');
   assert.equal(rankCandidates([{...row,syncedLyrics:'[00:00.00]全部歌词'}],playback).length,0);
   assert.equal(chooseAutomatic(rankCandidates([row,{...row,id:2,syncedLyrics:'[00:01.00]版本二\n[00:05.00]下一句'}],playback)),null);
   assert.equal(chooseAutomatic(rankCandidates([row,{...row,id:2,albumName:'Greatest Hits'}],playback)).id,1);

@@ -1,15 +1,13 @@
-# Local verification — 2026-10-22
+# Verification — 0.3.0 / 2026-10-23
 
-Environment: Windows 11 x64, Node 24.11.1, Electron 43.3.0, .NET Framework C# compiler and locally installed Windows SDK metadata.
+Environment: Windows 11 x64, Node 24.11.1, Electron 43.3.0.
 
-- 17 automated tests passed: LRC parsing/translation timestamps, position interpolation, pause/seek, matching and version safety, lookup races/caching/retries, authenticated local APIs, and native session selection/adapter behavior.
-- JavaScript syntax checks passed.
-- The project's compiled read-only native helper returned actual system-player song metadata and a valid playing timeline on this machine.
-- The source application and portable executable both passed desktop checks using an isolated profile and original demonstration lyrics: board rendering, settings, pin IPC, local LRC import, pause, seek, timing offset, renderer sandbox, and normal shutdown.
-- The portable desktop test used a PATH containing Windows System32 only, with its own bundled Electron executable. It used its bundled runtime without a separate Node installation.
-- The release package excludes node_modules, unrelated vendor code, personal state and real song lyrics. Source exports use an explicit allowlist and credential/path pattern checks.
-- The README preview is an actual application screenshot showing original demo text, not a photograph of the user's desktop.
+- 30 automated checks passed, including existing automatic/manual/plain modes and new second-source parsing, opt-in, version confirmation, priority, schema/error handling and safe fallback.
+- Syntax checks passed. Source/portable packaging audits exclude personal settings, caches, credentials and real fetched lyrics.
+- Public service probes and the actual new JSON client returned valid timestamped candidates. See SECOND-SOURCE.md for limits and details.
+- Desktop verification uses a private test profile, simulated media heartbeats and original lyric text. It checks the second-source switch, lookup, candidate selection and manual alignment in addition to earlier board functions.
+- The simulated reader refreshes liveness without inventing progress in metadata-only mode. Production still uses the read-only native Windows media reader; no audio capture or playback control was added.
 
-The original-text desktop tests use a deliberate test fixture. They demonstrate UI/synchronization behavior, not actual LRCLIB catalogue coverage for every song. Real-provider lookup and system media integration derive from the previously verified lyrics prototype; no new claim of universal player compatibility is made here.
+Actual test-player support remains limited to prior Windows 11 / YouTube Music PWA verification. This does not establish compatibility of every QQ Music version, Windows 10 or every song. Hosted GitHub Actions have not been executed by this local task. No security audit, signing or automatic-update claim is made.
 
-Not yet verified: execution on Windows 10, each other individual music player, hosted GitHub Actions execution, signed distribution, independent security review. The repository workflow is prepared but has not run in a GitHub repository.
+Real fetched lyrics are absent from source, screenshots and releases. This release does not add a local directory scanner or a paid provider.

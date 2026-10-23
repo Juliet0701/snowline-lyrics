@@ -61,7 +61,8 @@ test('service failure is explicit and not retried on every heartbeat; retry endp
     await f.api('playback',sample());
     await waitFor(async()=>{const s=await f.api('state');return s.lyrics.status==='error';});
     for(let i=0;i<4;i++)await f.api('playback',sample());assert.equal(calls,1);
-    fail=false;await f.api('lyrics/search',{trackId:'youtube:one'});
+    assert.equal((await f.api('lyrics/search',{trackId:'youtube:one'})).status,429);
+    await new Promise(r=>setTimeout(r,3100));fail=false;await f.api('lyrics/search',{trackId:'youtube:one'});
     await waitFor(async()=>{const s=await f.api('state');return s.lines.length>0;});assert.equal(calls,2);
   }finally{await f.close();}
 });

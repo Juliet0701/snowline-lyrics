@@ -1,13 +1,15 @@
 {
   "name": "snowline-lyrics",
   "productName": "Snowline Lyrics",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "A floating Windows lyric board powered by system media sessions and timestamped lyrics.",
   "private": true,
   "license": "MIT",
   "type": "module",
   "main": "desktop/main.cjs",
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "electron .",
     "test": "node --test tests/*.test.mjs",
@@ -17,5 +19,8 @@
     "audit:source": "node scripts/audit-source.mjs",
     "test:desktop": "node scripts/desktop-check.mjs"
   },
-  "devDependencies": {"electron": "43.3.0", "playwright-core": "1.56.1"}
+  "devDependencies": {
+    "electron": "43.3.0",
+    "playwright-core": "1.56.1"
+  }
 }

@@ -17,7 +17,7 @@ export async function sourceFiles(){
 export async function auditSource(){
  const list=await sourceFiles();
  for(const file of list){
-  if(/(?:^|\/)(?:vendor|node_modules|\.local|test-results|pairing\.json|library\.json)(?:\/|$)|\.(?:lrc|mp3|flac|wav|m4a|exe|dll)$/i.test(file))throw new Error('Forbidden source file: '+file);
+  if(/(?:^|\/)(?:vendor|node_modules|\.local|test-results|pairing\.json|library\.json|settings\.json|window\.json)(?:\/|$)|\.(?:lrc|mp3|flac|wav|m4a|exe|dll)$/i.test(file))throw new Error('Forbidden source file: '+file);
   if(/\.(?:mjs|cjs|js|cs|ps1|json|md|txt|ya?ml)$/.test(file)){
    const text=await readFile(join(root,file),'utf8');
    if(/[A-Z]:[\\/]Users[\\/]/i.test(text))throw new Error('Private absolute path: '+file);

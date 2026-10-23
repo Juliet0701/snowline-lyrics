@@ -11,6 +11,8 @@ test('system session selection favors playing music and honors explicit selectio
  assert.equal(chooseSession([paused,song],'other').id,'other');
  assert.equal(chooseSession([song],'gone'),null);
  assert.equal(chooseSession([]),null);
+ assert.equal(chooseSession([{...song,playbackStatus:'Closed'}]),null);
+ assert.equal(mediaSample({...song,paused:true,playbackStatus:'Stopped',pauseKnown:false}).pauseKnown,true);
 });
 test('same song keeps its lyric binding across applications, progress and pause',()=>{
  const one=mediaSample(song),two=mediaSample({...song,id:'spotify#0',positionMs:70000,paused:true});
@@ -27,8 +29,8 @@ test('native adapter forwards pause and seek and clears unavailable playback',as
  try{
   frame([song]);assert.equal(samples.at(-1).positionMs,30000);
   frame([{...song,positionMs:5000,paused:true}]);assert.equal(samples.at(-1).positionMs,5000);assert.equal(samples.at(-1).paused,true);
-  frame([{...song,timelineValid:false}]);assert.equal(adapter.getState().status,'unsupported');assert.equal(clears,1);
-  frame([]);assert.equal(adapter.getState().status,'empty');assert.equal(clears,2);
+  frame([{...song,timelineValid:false}]);assert.equal(adapter.getState().status,'metadata-only');assert.equal(clears,0);assert.equal(samples.at(-1).timelineAvailable,false);assert.equal(samples.at(-1).title,'Song');
+  frame([]);assert.equal(adapter.getState().status,'empty');assert.equal(clears,1);
   assert.throws(()=>adapter.select('gone'));
  }finally{adapter.close();child.stdout.end();child.stderr.end();}
  assert.equal(killed,true);

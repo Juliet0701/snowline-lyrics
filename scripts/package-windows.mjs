@@ -20,7 +20,7 @@ const dest=join(out,'resources/app');await mkdir(dest,{recursive:true});
 for(const dir of ['app','desktop','web','native/bin'])await cp(join(root,dir),join(dest,dir),{recursive:true});
 await writeFile(join(dest,'package.json'),JSON.stringify({name:pkg.name,productName:pkg.productName,version:pkg.version,license:pkg.license,type:'module',main:pkg.main},null,2));
 for(const name of ['LICENSE','THIRD-PARTY-NOTICES.md','PRIVACY.md','QUICKSTART.txt'])await cp(join(root,name),join(out,name==='LICENSE'?'LICENSE-Snowline-Lyrics.txt':name));
-const forbidden=new Set(['.local','pairing.json','library.json','window.json','vendor','node_modules','.git']);
+const forbidden=new Set(['.local','pairing.json','library.json','window.json','settings.json','vendor','node_modules','.git']);
 let count=0;
 async function audit(dir){for(const f of await readdir(dir,{withFileTypes:true})){
  if(forbidden.has(f.name))throw new Error('Unexpected packaged content: '+f.name);
