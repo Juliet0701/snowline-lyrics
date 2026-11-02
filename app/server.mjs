@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {defaultAppearance,validateAppearance} from './appearance.mjs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { randomBytes, timingSafeEqual,createHash } from 'node:crypto';
 import { join } from 'node:path';
@@ -9,11 +10,11 @@ import {createLrcApiClient} from './lrcapi.mjs';
 
 const demoLrc = '[ti:同步演示]\n[00:00.00]雪夜里，星光轻轻亮起\n[00:04.00]让每一句祝福，跟着音乐靠近\n[00:08.00]暂停一下，文字也会等你\n[00:12.00]拖动进度，去下一段风景\n[00:16.00]\n[00:20.00]愿你今天也有好心情';
 
-async function body(req) {
+async function body(req,limit=512*1024) {
   let size = 0; const chunks = [];
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 512 * 1024) { const e = new Error('Body exceeds 512 KiB'); e.status = 413; throw e; }
+    if (size > limit) { const e = new Error('Body exceeds 512 KiB'); e.status = 413; throw e; }
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
@@ -33,6 +34,10 @@ export async function createBridge({ root, port = 18743, token: suppliedToken, p
   const manual=new ManualTimeline();
   const settings={backupEnabled:false,syncBackupEnabled:false};
   if(persist){try{const saved=JSON.parse(await readFile(join(local,'settings.json'),'utf8'));settings.backupEnabled=saved.backupEnabled===true;settings.syncBackupEnabled=saved.syncBackupEnabled===true;}catch{}}
+  let appearance={...defaultAppearance};
+  if(persist){try{appearance=validateAppearance(JSON.parse(await readFile(join(local,'appearance.json'),'utf8')));}catch{}}
+  let appearanceWrite=Promise.resolve();
+  const publicAppearance=()=>({...appearance,image:undefined,imageVersion:appearance.image?createHash('sha256').update(appearance.image).digest('hex').slice(0,16):''});
   const lookups=new Map();
   const inFlight=new Map();
   let libraryWrite=Promise.resolve(),closed=false;
@@ -132,13 +137,18 @@ export async function createBridge({ root, port = 18743, token: suppliedToken, p
       const admin = (!origin || origin === base) && !['cross-site', 'same-site'].includes(req.headers['sec-fetch-site']);
       if (path === '/api/bootstrap' && req.method === 'GET') {
         if (!admin) return json(403, { error: 'Open the local dashboard to pair' });
-        return json(200, { token, base, version: '0.3.0' });
+        return json(200, { token, base, version: '0.4.2' });
       }
       if (path === '/health' && req.method === 'GET') return json(200, { ok: true, app: 'snowline-lyrics' });
       if (path === '/engine.js' && req.method === 'GET' && admin) {
         const source = (await readFile(join(root, 'app/core.mjs'), 'utf8')).replaceAll('export function ', 'function ');
         res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8' });
         return res.end(source + '\nwindow.LyricsCore = {positionAt, locateLyric};');
+      }
+      if(path==='/background'&&req.method==='GET'){
+        if(!admin)return json(403,{error:'Origin denied'});
+        if(!appearance.image){res.writeHead(204);return res.end();}
+        const [prefix,data]=appearance.image.split(',');res.writeHead(200,{'Content-Type':prefix.includes('image/png')?'image/png':'image/jpeg'});return res.end(Buffer.from(data,'base64'));
       }
       if (staticFiles.has(path) && req.method === 'GET') {
         if (!admin) return json(403, { error: 'Dashboard origin denied' });
@@ -152,7 +162,7 @@ export async function createBridge({ root, port = 18743, token: suppliedToken, p
         const entry = playback && !playback.ad ? library[playback.trackId] : null;
         const lines=entry?.lines||[],text=entry?.text||lines.map(l=>l.text).join('\n'),display=manual.display(playback);
         const mode=entry&&!lines.length?'plain':lines.length?(playback?.timelineAvailable?'automatic':display?'manual':'align-required'):'waiting';
-        return json(200, { ...state, settings, mode, displayPlayback:display||(playback?.timelineAvailable?playback:null),manualAligned:!!display,media:getMediaState?.()||null, lines, text,lrcName: entry?.name || '', lyrics:playback?statusFor(playback.trackId):{status:'idle',message:'等待音乐响起',candidates:[]}, stale: !playback || Date.now() - playback.receivedAt > 6000, serverNow: Date.now() });
+        return json(200, { ...state, settings, appearance:publicAppearance(), mode, displayPlayback:display||(playback?.timelineAvailable?playback:null),manualAligned:!!display,media:getMediaState?.()||null, lines, text,lrcName: entry?.name || '', lyrics:playback?statusFor(playback.trackId):{status:'idle',message:'等待音乐响起',candidates:[]}, stale: !playback || Date.now() - playback.receivedAt > 6000, serverNow: Date.now() });
       }
       if (path === '/api/playback' && req.method === 'POST') {
         const next = normalizePlayback(await body(req));
@@ -198,6 +208,10 @@ export async function createBridge({ root, port = 18743, token: suppliedToken, p
         const { offsetMs } = await body(req);
         if (!Number.isFinite(offsetMs) || Math.abs(offsetMs) > 30000) return json(400, { error: 'Offset must be within ±30000 ms' });
         state.offsetMs = offsetMs; return json(200, { ok: true });
+      }
+      if(path==='/api/appearance'&&req.method==='POST'){
+        const patch=await body(req,1500*1024),next=validateAppearance({...appearance,...patch});
+        const save=appearanceWrite.catch(()=>{}).then(async()=>{if(persist)await writeFile(join(local,'appearance.json'),JSON.stringify(next));appearance=next;});appearanceWrite=save;await save;return json(200,{ok:true,appearance:publicAppearance()});
       }
       if(path==='/api/settings'&&req.method==='POST'){
         const data=await body(req),keys=['backupEnabled','syncBackupEnabled'].filter(k=>Object.hasOwn(data,k));if(!keys.length||keys.some(k=>typeof data[k]!=='boolean'))return json(400,{error:'备用源开关无效'});

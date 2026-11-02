@@ -7,7 +7,7 @@ async function api(path,data){const r=await fetch('/api/'+path,{method:data===un
 async function poll(){
  if(busy)return;busy=true;
  try{
-  state=await api('state');const p=state.playback,m=state.media;
+  state=await api('state');syncAppearance(state.appearance);const p=state.playback,m=state.media;
   $('title').textContent=p?.title||'等待音乐响起';$('artist').textContent=p?.artist||'打开播放器并播放音乐，即可自动连接。';
   $('status').textContent=p?`${labels[state.mode]}${p.paused?' · 已暂停':''}`:m?.status==='error'?'连接遇到问题':'等待播放器';
   $('media-status').textContent=m?.message||'正在连接 Windows 媒体会话…';
@@ -43,4 +43,17 @@ $('lrc-file').onchange=async()=>{
  const file=$('lrc-file').files[0],trackId=state?.playback?.trackId;if(!file)return;
  try{if(!trackId)throw new Error('请先播放一首歌');if(file.size>400*1024)throw new Error('文件过大，请选择小于 400 KiB 的歌词文件');const lrc=await file.text();if(state?.playback?.trackId!==trackId)throw new Error('歌曲已切换，请重新导入');await api('lrc',{trackId,name:file.name,lrc});$('import-status').textContent='已导入当前歌曲';await poll();}catch(e){$('import-status').textContent=e.message;}finally{$('lrc-file').value='';}
 };
+for(const button of document.querySelectorAll('[data-settings-tab]'))button.onclick=()=>{for(const tab of document.querySelectorAll('[data-settings-tab]')){const active=tab===button;tab.setAttribute('aria-pressed',String(active));$('settings-'+tab.dataset.settingsTab).hidden=!active;}};
+let appearanceBusy=false,appearanceEditing=false;
+function syncAppearance(a){if(!a||appearanceBusy||appearanceEditing)return;$('overlay-color').value=a.overlayColor;$('overlay-opacity').value=Math.round(a.overlayOpacity*100);$('overlay-value').textContent=Math.round(a.overlayOpacity*100)+'%';$('text-shadow').checked=a.textShadow;$('background-color').value=a.backgroundColor;$('lyrics-color').value=a.lyricsColor;$('background-opacity').value=Math.round(a.opacity*100);$('opacity-value').textContent=Math.round(a.opacity*100)+'%';$('remove-background').disabled=!a.imageVersion;$('background-name').textContent=a.imageVersion?(a.imageName||'已保存背景图片'):'尚未设置背景图片';}
+async function saveAppearance(patch){appearanceBusy=true;try{await api('appearance',patch);$('appearance-result').textContent='外观已保存，歌词板已更新。';}catch(e){$('appearance-result').textContent=e.message;}finally{appearanceBusy=false;await poll();}}
+for(const [id,key] of [['background-color','backgroundColor'],['lyrics-color','lyricsColor'],['background-opacity','opacity'],['overlay-opacity','overlayOpacity']]){const input=$(id);input.oninput=()=>{appearanceEditing=true;if(key==='opacity'||key==='overlayOpacity')$(key==='opacity'?'opacity-value':'overlay-value').textContent=input.value+'%';};input.onchange=()=>{appearanceEditing=false;void saveAppearance({[key]:['opacity','overlayOpacity'].includes(key)?Number(input.value)/100:input.value});};}
+$('overlay-color').onchange=()=>void saveAppearance({overlayColor:$('overlay-color').value});
+$('text-shadow').onchange=()=>void saveAppearance({textShadow:$('text-shadow').checked});
+$('overlay-dark').onclick=()=>void saveAppearance({overlayColor:'black',overlayOpacity:.35});
+$('overlay-light').onclick=()=>void saveAppearance({overlayColor:'white',overlayOpacity:.35});
+$('overlay-off').onclick=()=>void saveAppearance({overlayOpacity:0});
+$('remove-background').onclick=()=>void saveAppearance({image:null});
+$('reset-appearance').onclick=()=>void saveAppearance({backgroundColor:'#14232e',lyricsColor:'#def4e7',opacity:.95,image:null,overlayColor:'black',overlayOpacity:0,textShadow:false});
+$('background-file').onchange=async()=>{const file=$('background-file').files[0];if(!file)return;try{if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>10*1024*1024)throw new Error('请选择 10 MB 以内的 PNG、JPG 或 WebP 图片');const bitmap=await createImageBitmap(file);try{const scale=Math.min(1,1600/bitmap.width,1600/bitmap.height),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));const ctx=canvas.getContext('2d');ctx.fillStyle='#14232e';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);const image=canvas.toDataURL('image/jpeg',.85);if(image.length>1400*1024)throw new Error('图片细节过多，请换一张较小的图片');await saveAppearance({image,imageName:file.name.slice(0,160)});}finally{bitmap.close();}}catch(e){$('appearance-result').textContent=e.message||'无法读取此图片';}finally{$('background-file').value='';}};
 await poll();paint();setInterval(poll,500);setInterval(paint,100);

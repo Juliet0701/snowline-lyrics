@@ -30,9 +30,29 @@ try{
  await board.locator('#pin').click();assert.equal(await board.locator('#pin').getAttribute('aria-pressed'),'true');
  await board.locator('#settings').click();await settings.bringToFront();
  await settings.waitForFunction(()=>document.querySelector('#current')?.textContent==='让每一句祝福，跟着音乐靠近');
+ await settings.locator('#background-color').fill('#123456');await settings.locator('#background-color').dispatchEvent('change');
+ await board.waitForFunction(()=>document.documentElement.style.getPropertyValue('--board-background')==='#123456');
+ await settings.locator('#lyrics-color').fill('#ffcc00');await settings.locator('#lyrics-color').dispatchEvent('change');
+ await board.waitForFunction(()=>['#current','.brand','footer','#pin'].every(q=>getComputedStyle(document.querySelector(q)).color==='rgb(255, 204, 0)'));
+ await settings.locator('#background-opacity').fill('30');await settings.locator('#background-opacity').dispatchEvent('change');
+ await board.waitForFunction(()=>getComputedStyle(document.querySelector('.board'),'::before').opacity==='0.3'&&getComputedStyle(document.querySelector('#current')).opacity==='1');
+ await settings.locator('#background-file').setInputFiles({name:'test.png',mimeType:'image/png',buffer:Buffer.from(await settings.evaluate(()=>{const c=document.createElement('canvas');c.width=80;c.height=40;const ctx=c.getContext('2d');ctx.fillStyle='#446688';ctx.fillRect(0,0,80,40);return c.toDataURL('image/png').split(',')[1];}),'base64')});
+ await board.waitForFunction(()=>document.documentElement.style.getPropertyValue('--board-image').includes('/background?v='));
+ await settings.waitForFunction(()=>document.querySelector('#background-name').textContent==='test.png');
+ const imageOk=await board.evaluate(async()=>{const image=new Image();image.src='/background';await image.decode();return image.naturalWidth>0;});assert.ok(imageOk);
+ await board.screenshot({path:join(results,'appearance-board.png')});await settings.screenshot({path:join(results,'appearance-settings.png')});
+ await settings.locator('#remove-background').click();await board.waitForFunction(()=>document.documentElement.style.getPropertyValue('--board-image')==='none');
+ await settings.locator('#overlay-dark').click();await board.waitForFunction(()=>getComputedStyle(document.querySelector('.board'),'::before').backgroundImage.includes('rgba(0, 0, 0, 0.35)'));
+ await settings.locator('#overlay-light').click();await board.waitForFunction(()=>getComputedStyle(document.querySelector('.board'),'::before').backgroundImage.includes('rgba(255, 255, 255, 0.35)'));
+ await settings.locator('#overlay-opacity').fill('70');await settings.locator('#overlay-opacity').dispatchEvent('change');await board.waitForFunction(()=>document.documentElement.style.getPropertyValue('--board-overlay').endsWith(',0.7)'));
+ await settings.locator('#text-shadow').check();await board.waitForFunction(()=>getComputedStyle(document.querySelector('#current')).textShadow!=='none');
+ await settings.locator('#overlay-off').click();await board.waitForFunction(()=>document.documentElement.style.getPropertyValue('--board-overlay').endsWith(',0)'));
+ await settings.locator('#reset-appearance').click();await board.waitForFunction(()=>document.documentElement.style.getPropertyValue('--board-background')==='#14232e');
+
  await settings.locator('#lrc-file').setInputFiles({name:'original-test.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:00.00]让音乐，留在眼前。\n[00:08.00]下一句，是你喜欢的风景。')});
  await board.waitForFunction(()=>document.querySelector('#current')?.textContent==='让音乐，留在眼前。');
- await settings.locator('#offset').fill('1000');await settings.locator('#offset').dispatchEvent('change');
+ await board.waitForFunction(()=>getComputedStyle(document.querySelector('#current')).textShadow==='none');
+ await settings.locator('[data-settings-tab=playback]').click();await settings.locator('#offset').fill('1000');await settings.locator('#offset').dispatchEvent('change');
  await board.evaluate(async()=>{const b=await(await fetch('/api/bootstrap')).json();await fetch('/api/demo',{method:'POST',headers:{'Content-Type':'application/json','X-Lyrics-Token':b.token},body:JSON.stringify({positionMs:12000,paused:true})});});
  await board.waitForFunction(()=>document.querySelector('#current')?.textContent==='拖动进度，去下一段风景');
  await board.evaluate(async()=>{const b=await(await fetch('/api/bootstrap')).json();await fetch('/api/demo',{method:'POST',headers:{'Content-Type':'application/json','X-Lyrics-Token':b.token},body:JSON.stringify({positionMs:4000,paused:true})});});
@@ -41,7 +61,8 @@ try{
  await settings.screenshot({path:join(results,packaged?'portable-settings.png':'settings.png')});
  const metrics=await board.evaluate(()=>{const s=document.querySelector('section');return{height:innerHeight,sectionHeight:s.clientHeight,scrollHeight:s.scrollHeight};});assert.ok(metrics.sectionHeight>30);assert.deepEqual(errors,[]);
  async function sample(title,trackId,timelineAvailable){await board.evaluate(async({title,trackId,timelineAvailable})=>{const b=await(await fetch('/api/bootstrap')).json();await fetch('/api/playback',{method:'POST',headers:{'Content-Type':'application/json','X-Lyrics-Token':b.token},body:JSON.stringify({source:'fixture:qq',trackId,title,artist:'原创测试作者',durationMs:120000,positionMs:0,timelineAvailable,pauseKnown:false,paused:false,capturedAt:Date.now()})});},{title,trackId,timelineAvailable});}
- await settings.locator('#offset').fill('0');await settings.locator('#offset').dispatchEvent('change');
+ await board.waitForFunction(()=>getComputedStyle(document.querySelector('#current')).textShadow==='none');
+ await settings.locator('[data-settings-tab=playback]').click();await settings.locator('#offset').fill('0');await settings.locator('#offset').dispatchEvent('change');
  await sample('手动对齐演示','test:manual',false);
  await settings.waitForFunction(()=>!document.querySelector('#manual-panel').hidden&&document.querySelectorAll('.lyric-choice').length===3);
  await settings.locator('.lyric-choice').nth(1).click();await settings.locator('#align-start').click();
@@ -57,7 +78,7 @@ try{
  await board.screenshot({path:join(results,packaged?'portable-plain.png':'plain.png'),omitBackground:true});
  await board.waitForTimeout(3100);await board.locator('#reload').click();await board.waitForFunction(()=>document.querySelector('#reload').getAttribute('aria-busy')==='true');await board.waitForFunction(()=>document.querySelector('#reload').getAttribute('aria-busy')==='false');
  await board.waitForFunction(()=>document.querySelector('#status').textContent.includes('已加载'));
- await settings.locator('#sync-backup').check();await settings.waitForFunction(()=>document.querySelector('#sync-backup-result').textContent.includes('已开启'));
+ await settings.locator('[data-settings-tab=sources]').click();await settings.locator('#sync-backup').check();await settings.waitForFunction(()=>document.querySelector('#sync-backup-result').textContent.includes('已开启'));
  await board.waitForTimeout(3100);await board.locator('#reload').click();await settings.waitForFunction(()=>[...document.querySelectorAll('.version')].some(x=>x.textContent.includes('lrcapi')));
  const second=settings.locator('.version').filter({hasText:'lrcapi'}).first();await second.click();
  await settings.waitForFunction(()=>!document.querySelector('#manual-panel').hidden);await settings.locator('.lyric-choice').first().click();await settings.locator('#align-start').click();

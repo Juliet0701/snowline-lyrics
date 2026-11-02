@@ -1,7 +1,7 @@
 {
   "name": "snowline-lyrics",
   "productName": "Snowline Lyrics",
-  "version": "0.3.0",
+  "version": "0.4.2",
   "description": "A floating Windows lyric board powered by system media sessions and timestamped lyrics.",
   "private": true,
   "license": "MIT",

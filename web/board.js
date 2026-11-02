@@ -9,7 +9,10 @@ async function poll(){if(busy)return;busy=true;try{
  if(watchedQuery&&state.playback?.trackId!==watchedQuery)watchedQuery=null;
  if(watchedQuery&&state.lyrics?.status!=='searching'){notice=state.lyrics.warning||state.lyrics.message;noticeUntil=Date.now()+6500;watchedQuery=null;}
 }catch{disconnected=true;}finally{busy=false;}}
+let appearanceKey='';
 function paint(){
+ const a=state?.appearance;if(a&&JSON.stringify(a)!==appearanceKey){appearanceKey=JSON.stringify(a);const style=document.documentElement.style;style.setProperty('--board-background',a.backgroundColor);style.setProperty('--lyrics-color',a.lyricsColor);style.setProperty('--board-opacity',String(a.opacity));const channel=a.overlayColor==='white'?'255,255,255':'0,0,0';style.setProperty('--board-overlay',`rgba(${channel},${a.overlayOpacity})`);const rgb=a.lyricsColor.slice(1).match(/../g).map(v=>parseInt(v,16)),light=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722>140;style.setProperty('--text-shadow',a.textShadow?`0 1px 3px ${light?'#000e':'#fffe'},0 0 5px ${light?'#0009':'#fff9'}`:'none');style.setProperty('--board-image',a.imageVersion?`url("/background?v=${a.imageVersion}")`:'none');}
+
  const p=state?.playback,display=state?.displayPlayback,lines=state?.lines||[],pos=positionAt(display),lyric=locateLyric(lines,pos,state?.offsetMs||0),mode=state?.mode;
  $('track').textContent=p?[p.title,p.artist].filter(Boolean).join(' · '):'SNOWLINE LYRICS';
  const plain=mode==='plain';$('full-text').hidden=!plain;$('current').hidden=plain;$('next').hidden=plain;

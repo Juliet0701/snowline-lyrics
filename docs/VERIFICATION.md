@@ -1,3 +1,15 @@
+# Verification — 0.4.2 / 2026-11-02
+
+- 32 automated tests passed, including overlay validation and persistence across restart.
+- Desktop checks exercise black/white 35% presets, custom strength, shadow, disabling and reset, as well as prior lyric flows.
+
+# Verification — 0.4.0 / 2026-11-02
+
+- 32 automated tests passed; 26 JavaScript files passed syntax checks.
+- Packaged Electron desktop verification passed: colors, background-only opacity, valid PNG upload converted to local JPEG, successful image decoding, removal and reset. Existing lyric flows also passed.
+- Appearance persistence verified across service restart using isolated temporary profiles. No real user settings changed.
+- Local images are excluded from source export and portable packages.
+
 # Verification — 0.3.0 / 2026-10-23
 
 Environment: Windows 11 x64, Node 24.11.1, Electron 43.3.0.

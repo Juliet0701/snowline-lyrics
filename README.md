@@ -8,7 +8,7 @@ A floating lyric board for Windows. System media sessions → timestamped lyrics
 
 ## 使用
 
-1. 从 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.3.0-win-x64.zip` 便携包，完整解压。
+1. 从 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.4.2-win-x64.zip` 便携包，完整解压。
 2. 双击 `SnowlineLyrics.exe`，在音乐软件中播放歌曲。
 3. 拖动歌词板顶部移动窗口，拖动边缘调整大小；可切换置顶。点击“设置”可选择播放器、确认歌词版本、调整时间偏移或导入自己的 `.lrc`。
 
@@ -94,7 +94,7 @@ npm start
 
 ```powershell
 npm run package:windows
-Compress-Archive -LiteralPath dist/Snowline-Lyrics-0.3.0-win-x64 -DestinationPath dist/Snowline-Lyrics-0.3.0-win-x64.zip
+Compress-Archive -LiteralPath dist/Snowline-Lyrics-0.3.0-win-x64 -DestinationPath dist/Snowline-Lyrics-0.4.2-win-x64.zip
 ```
 
 输出目录存在时打包脚本会停止；请先检查并移动旧构建，或提升版本号。脚本可接收现有官方 Electron 43.3.0 运行时目录作为参数。运行时自带许可证会保留；构建不会带入个人缓存。
@@ -106,3 +106,13 @@ Compress-Archive -LiteralPath dist/Snowline-Lyrics-0.3.0-win-x64 -DestinationPat
 自有代码采用 [MIT](LICENSE)。开发贡献、漏洞报告及发布步骤分别见 [CONTRIBUTING.md](CONTRIBUTING.md)、[SECURITY.md](SECURITY.md) 和 [GitHub 发布指南](docs/PUBLISHING.md)。本仓库包含仅验证与打包的 GitHub Actions，不会自动公开发布版本。
 
 项目仓库：[Juliet0701/snowline-lyrics](https://github.com/Juliet0701/snowline-lyrics)。开发时使用了 AI 编程辅助；功能、依赖和发布内容仍需维护者审核。
+
+
+## 0.4.0 歌词板外观
+
+在设置的“歌词板外观”中修改背景颜色、歌词颜色、背景不透明度，或上传 PNG/JPG/WebP 图片（10 MB 以内）。图片居中裁切，缩小为最长 1600 像素的 JPEG 后，仅保存到本机应用数据目录的 appearance.json，不上传至歌词服务。透明度只影响背景。支持移除图片和恢复默认；设置会在下次启动时恢复。
+
+
+### 0.4.2 背景遮罩与文字阴影
+
+在“外观 → 背景遮罩”选择黑色或白色，并调节 0–100% 强度。浅色歌词建议黑色遮罩，深色歌词建议白色遮罩；提供 35% 快捷按钮和关闭按钮。背景透明度控制整层背景，遮罩只改变背景的明暗，不改变文字颜色。文字阴影可独立开关。默认关闭，重启后恢复设置。
