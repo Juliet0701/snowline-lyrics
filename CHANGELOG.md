@@ -1,9 +1,3 @@
-# 0.5.2
-
-- Use a compact 400×180 default and minimum.
-- Apply the requested size once on upgrade; preserve subsequent manual resizing.
-- Adapt spacing, controls and lyric typography to compact windows.
-
 # 0.5.1
 
 - Remove the Windows undecorated-window white border/system shadow and redundant card outline.

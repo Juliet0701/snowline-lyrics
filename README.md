@@ -6,7 +6,7 @@ A floating Windows lyric board built with **Rust + Tauri 2**. The UI uses system
 
 ## 下载与运行
 
-1. 在 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.5.2-win-x64.zip`，完整解压。
+1. 在 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.5.0-win-x64.zip`，完整解压。
 2. 先从托盘退出旧版，然后运行 `SnowlineLyrics.exe`。
 3. 在音乐软件播放歌曲；设置中可以选择播放器、歌词版本及外观。
 
