@@ -1,0 +1,5 @@
+const $=id=>document.getElementById(id),invoke=window.__TAURI__.core.invoke;
+for(const name of ['pin','settings','hide'])$(name).onclick=async()=>{try{const pinned=await invoke('board_action',{name});$('pin').setAttribute('aria-pressed',String(pinned));}catch(e){$('status').textContent=String(e);}};
+let busy=false;
+async function poll(){if(busy)return;busy=true;try{const value=await invoke('media_snapshot');const sessions=value.sessions;const p=sessions.find(p=>!p.paused&&p.artist)||sessions.find(p=>!p.paused)||sessions.find(p=>p.isCurrent)||sessions[0];$('title').textContent=p?.title||'等待音乐响起';$('artist').textContent=p?.artist||'';$('status').textContent=p?`${p.paused?'已暂停':'正在播放'} · ${p.timelineAvailable?Math.floor(p.positionMs/1000)+' 秒':'播放器未提供有效进度'}`:value.errors.length?'媒体接口暂不可用':'请打开音乐软件播放歌曲';$('progress').max=p?.durationMs||1;$('progress').value=p?.positionMs||0;if(location.search){$('sessions').hidden=false;$('sessions').textContent=JSON.stringify(value,null,2);}}catch(e){$('status').textContent=String(e);}finally{busy=false;}}
+void poll();setInterval(poll,750);
