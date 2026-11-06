@@ -52,7 +52,7 @@ fn save_window(app: &tauri::AppHandle) {
         if let (Ok(pos), Ok(size)) = (w.outer_position(), w.inner_size()) {
             let state = app.state::<StateData>();
             let b = state.backend.lock().unwrap();
-            let data = json!({"boardLayoutVersion":2,"pinned":state.pinned.load(Ordering::Relaxed),"bounds":{"x":pos.x,"y":pos.y,"width":size.width,"height":size.height}});
+            let data = json!({"boardLayoutVersion":4,"pinned":state.pinned.load(Ordering::Relaxed),"bounds":{"x":pos.x,"y":pos.y,"width":size.width,"height":size.height}});
             let _ = std::fs::write(b.dir.join("window.json"), data.to_string());
         }
     }
@@ -179,7 +179,7 @@ fn main() {
                 prefs["bounds"]["height"].as_u64(),
             ) {
                 if (400..=3200).contains(&width)
-                    && (160..=1800).contains(&height)
+                    && (180..=1800).contains(&height)
                     && board.available_monitors()?.iter().any(|m| {
                         let p = m.position();
                         let s = m.size();
@@ -193,14 +193,9 @@ fn main() {
                     let _ = board.set_position(tauri::PhysicalPosition::new(x as i32, y as i32));
                 }
             }
-            // Repair cramped legacy default heights once, without replacing larger custom layouts.
-            if prefs["boardLayoutVersion"].as_u64().unwrap_or(0) < 2 {
-                let scale = board.scale_factor().unwrap_or(1.0);
-                if let Ok(size) = board.inner_size() {
-                    if size.height as f64 / scale < 260.0 {
-                        let _ = board.set_size(tauri::LogicalSize::new(600.0, 310.0));
-                    }
-                }
+            // Apply the requested compact default once on upgrade; retain later user resizing.
+            if prefs["boardLayoutVersion"].as_u64().unwrap_or(0) < 4 {
+                let _ = board.set_size(tauri::LogicalSize::new(400.0, 180.0));
             }
             let _ = board.show();
             let show = MenuItem::with_id(app, "show", "显示歌词板", true, None::<&str>)?;

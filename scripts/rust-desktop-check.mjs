@@ -15,13 +15,16 @@ try{
  board=await retry(async()=>{const page=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('board.html'));if(!page)throw Error('Board unavailable');return page;});
  const errors=[];board.on('pageerror',e=>errors.push(e.message));
  let settings;
- const cfg=JSON.parse(await (await import('node:fs/promises')).readFile('src-tauri/tauri.conf.json','utf8'));assert.equal(cfg.app.windows[0].shadow,false);assert.equal(cfg.app.windows[0].backgroundColor,'#00000000');assert.equal(cfg.app.windows[0].width,600);assert.equal(cfg.app.windows[0].height,310);
+ const cfg=JSON.parse(await (await import('node:fs/promises')).readFile('src-tauri/tauri.conf.json','utf8'));assert.equal(cfg.app.windows[0].shadow,false);assert.equal(cfg.app.windows[0].backgroundColor,'#00000000');assert.equal(cfg.app.windows[0].width,400);assert.equal(cfg.app.windows[0].height,180);
  await board.waitForFunction(()=>document.querySelector('.board').getAttribute('data-tauri-drag-region')==='deep');
+ await board.waitForFunction(()=>Math.abs(innerWidth-400)<=1&&Math.abs(innerHeight-180)<=1);
+
  assert.equal(await board.evaluate(()=>getComputedStyle(document.querySelector('.board')).borderTopWidth),'0px');
  assert.equal(await board.evaluate(()=>getComputedStyle(document.querySelector('.board')).boxShadow),'none');
  assert.equal(await board.evaluate(()=>getComputedStyle(document.body).padding),'0px');
  assert.equal(await board.locator('#full-text').getAttribute('data-tauri-drag-region'),'false');
  assert.equal(await board.locator('nav').getAttribute('data-tauri-drag-region'),'false');
+ const fit=await board.evaluate(()=>{const root=document.querySelector('.board').getBoundingClientRect();return [...document.querySelectorAll('nav button')].every(el=>{const r=el.getBoundingClientRect();return r.left>=root.left&&r.right<=root.right&&r.bottom<=root.bottom;});});assert.ok(fit,'Controls must fit the compact board');
  const api=(path,data)=>board.evaluate(({path,data})=>window.__TAURI__.core.invoke('api',{path,data}),{path,data});
  const playback={trackId:'test-original',source:'fixture',title:'原创测试',artist:'原创作者',durationMs:30000,positionMs:10000,paused:true,pauseKnown:true,rate:1,timelineAvailable:true,capturedAt:Date.now()};
  await api('__test/playback',playback);
