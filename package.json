@@ -1,7 +1,7 @@
 {
   "name": "snowline-lyrics",
   "productName": "Snowline Lyrics",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A native Rust and Tauri Windows lyric board with synchronized lyrics.",
   "private": true,
   "license": "MIT",

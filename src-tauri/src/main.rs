@@ -52,7 +52,7 @@ fn save_window(app: &tauri::AppHandle) {
         if let (Ok(pos), Ok(size)) = (w.outer_position(), w.inner_size()) {
             let state = app.state::<StateData>();
             let b = state.backend.lock().unwrap();
-            let data = json!({"pinned":state.pinned.load(Ordering::Relaxed),"bounds":{"x":pos.x,"y":pos.y,"width":size.width,"height":size.height}});
+            let data = json!({"boardLayoutVersion":2,"pinned":state.pinned.load(Ordering::Relaxed),"bounds":{"x":pos.x,"y":pos.y,"width":size.width,"height":size.height}});
             let _ = std::fs::write(b.dir.join("window.json"), data.to_string());
         }
     }
@@ -191,6 +191,15 @@ fn main() {
                 {
                     let _ = board.set_size(tauri::PhysicalSize::new(width as u32, height as u32));
                     let _ = board.set_position(tauri::PhysicalPosition::new(x as i32, y as i32));
+                }
+            }
+            // Repair cramped legacy default heights once, without replacing larger custom layouts.
+            if prefs["boardLayoutVersion"].as_u64().unwrap_or(0) < 2 {
+                let scale = board.scale_factor().unwrap_or(1.0);
+                if let Ok(size) = board.inner_size() {
+                    if size.height as f64 / scale < 260.0 {
+                        let _ = board.set_size(tauri::LogicalSize::new(600.0, 310.0));
+                    }
                 }
             }
             let _ = board.show();

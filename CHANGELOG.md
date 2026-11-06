@@ -1,3 +1,9 @@
+# 0.5.1
+
+- Remove the Windows undecorated-window white border/system shadow and redundant card outline.
+- Use a taller 600×310 default; repair cramped legacy heights once while retaining larger custom sizes.
+- Expand native drag regions across the board; keep buttons and full-text scrolling/selecting interactive.
+
 # 0.5.0 — Rust + Tauri
 
 - Replaced Electron, Node background service and C# media helper with Rust + Tauri and direct Windows media APIs.
