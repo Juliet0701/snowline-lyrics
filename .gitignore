@@ -20,3 +20,6 @@ pairing.json
 library.json
 window.json
 settings.json
+
+/rust/**/target/
+/src-tauri/target/

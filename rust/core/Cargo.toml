@@ -1,0 +1,8 @@
+[package]
+name = "snowline-core"
+version = "0.5.0-alpha.1"
+edition = "2021"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
