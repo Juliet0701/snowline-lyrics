@@ -1,3 +1,8 @@
+# 0.5.3
+
+- Restore full-size board typography independent of compact window size.
+- Add 24×24 native diagonal resize targets at each corner, keeping controls clear.
+
 # 0.5.2
 
 - Use a compact 400×180 default and minimum.
