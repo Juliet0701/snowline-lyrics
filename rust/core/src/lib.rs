@@ -24,7 +24,7 @@ pub fn parse_lrc(input: &str) -> Vec<Line> {
             let Some((min, sec)) = value.split_once(':') else {
                 break;
             };
-            let (Ok(minutes), Ok(seconds)) = (min.parse::<u32>(), sec.parse::<f64>()) else {
+            let (Ok(minutes), Ok(seconds)) = (min.parse::<u32>(), sec.replacen(':', ".", 1).parse::<f64>()) else {
                 break;
             };
             if !seconds.is_finite() || !(0.0..60.0).contains(&seconds) || minutes > 1440 {

@@ -47,10 +47,16 @@ pub fn read() -> Result<Snapshot, String> {
     }
     let _apartment = Apartment;
 
-    let manager = Manager::RequestAsync()
-        .map_err(|e| e.to_string())?
-        .join()
-        .map_err(|e| e.to_string())?;
+    let operation = Manager::RequestAsync().map_err(|e| e.to_string())?;
+    let started = std::time::Instant::now();
+    while operation.Status().map_err(|e| e.to_string())?.0 == 0 {
+        if started.elapsed() > std::time::Duration::from_millis(2500) {
+            let _ = operation.Cancel();
+            return Err("Windows 媒体接口响应超时".into());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let manager = operation.GetResults().map_err(|e| e.to_string())?;
     let current = manager.GetCurrentSession().ok();
     let sessions = manager.GetSessions().map_err(|e| e.to_string())?;
     let mut result = Snapshot::default();
@@ -61,7 +67,19 @@ pub fn read() -> Result<Snapshot, String> {
             let ordinal = counts.entry(app_id.clone()).or_default();
             let id = format!("{}#{}", app_id, ordinal);
             *ordinal += 1;
-            let props = session.TryGetMediaPropertiesAsync()?.join()?;
+            let operation = session.TryGetMediaPropertiesAsync()?;
+            let started = std::time::Instant::now();
+            while operation.Status()?.0 == 0 {
+                if started.elapsed() > std::time::Duration::from_millis(2500) {
+                    let _ = operation.Cancel();
+                    return Err(windows::core::Error::new(
+                        windows::core::HRESULT(0x800705B4u32 as i32),
+                        "媒体信息读取超时",
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            let props = operation.GetResults()?;
             let info = session.GetPlaybackInfo()?;
             let timeline = session.GetTimelineProperties()?;
             let now = now_ms();
