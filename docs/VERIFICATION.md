@@ -13,3 +13,5 @@ Environment: Windows 11 x64, Rust 1.99.1, Tauri 2.12.5 and system Edge WebView2.
 The renderer still uses WebView2 processes. Package size and executable size must not be confused with RAM use. Memory snapshots in test-results include the native process and its WebView2 descendants and may double-count shared pages; they are single-run observations, not a promised limit or a controlled Electron comparison.
 
 The application remains an unsigned Windows preview. Windows 10 and every third-party player have not been tested individually. Synced lyric matching depends on available metadata and provider content.
+
+The settings lifecycle is asynchronous on Windows to avoid synchronous WebView2 construction deadlocks. Its close/reopen persistence test passed. One post-close test snapshot was 423 MiB across seven native/WebView2 processes with remote debugging enabled; this is not an idle baseline or a controlled comparison with Electron.

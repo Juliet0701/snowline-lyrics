@@ -25,6 +25,7 @@ jobs:
       - run: npm run check
       - run: npm run audit:source
       - run: npm run build
+      - run: cargo fetch --locked --manifest-path src-tauri/Cargo.toml
       - run: npm run package:windows
       - name: Portable archive and checksum
         shell: pwsh
