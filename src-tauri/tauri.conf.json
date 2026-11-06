@@ -21,14 +21,6 @@
         "transparent": true,
         "alwaysOnTop": true,
         "visible": false
-      },
-      {
-        "label": "settings",
-        "title": "Snowline Lyrics · 设置",
-        "url": "settings.html",
-        "width": 900,
-        "height": 680,
-        "visible": false
       }
     ],
     "security": {

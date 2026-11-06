@@ -27,7 +27,7 @@ A floating Windows lyric board built with **Rust + Tauri 2**. The UI uses system
 
 首次运行会**只读复制**旧 `%APPDATA%/SnowlineLyrics` 中的歌词缓存、外观及配置到独立的 `%APPDATA%/SnowlineLyricsRust`，不会覆盖旧配置。其后两个版本各自保存设置。若需要回退，退出 Rust 版并重新打开 0.4.2 即可。
 
-Rust 版直接调用 Windows Media.Control，不运行旧 C# 媒体组件或本地 Node HTTP 服务。UI 通过限定的原生 IPC 调用 Rust。隐藏窗口暂停界面刷新。保留 HTML/CSS/JavaScript 用于界面渲染。
+Rust 版直接调用 Windows Media.Control，不运行旧 C# 媒体组件或本地 Node HTTP 服务。UI 通过限定的原生 IPC 调用 Rust。隐藏窗口暂停界面刷新；设置窗口按需创建，关闭时释放。保留 HTML/CSS/JavaScript 用于界面渲染。
 
 ## 源码开发
 

@@ -1,5 +1,5 @@
 import {chromium} from 'playwright-core';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import {mkdtemp,mkdir,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
@@ -13,12 +13,12 @@ async function retry(f){let error;for(let n=0;n<60;n++){try{return await f();}ca
 try{
  browser=await retry(()=>chromium.connectOverCDP('http://127.0.0.1:18749'));
  board=await retry(async()=>{const page=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('board.html'));if(!page)throw Error('Board unavailable');return page;});
- const settings=await retry(async()=>{const page=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(!page)throw Error('Settings unavailable');return page;});
- const errors=[];for(const p of [board,settings])p.on('pageerror',e=>errors.push(e.message));
+ const errors=[];board.on('pageerror',e=>errors.push(e.message));
+ let settings;
  const api=(path,data)=>board.evaluate(({path,data})=>window.__TAURI__.core.invoke('api',{path,data}),{path,data});
  const playback={trackId:'test-original',source:'fixture',title:'原创测试',artist:'原创作者',durationMs:30000,positionMs:10000,paused:true,pauseKnown:true,rate:1,timelineAvailable:true,capturedAt:Date.now()};
  await api('__test/playback',playback);
- await board.locator('#settings').click();await settings.bringToFront();await settings.waitForFunction(()=>document.querySelector('#title').textContent==='原创测试');
+ await board.locator('#settings').click();settings=await retry(async()=>{const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(!p)throw Error('Settings unavailable');return p;});settings.on('pageerror',e=>errors.push(e.message));await settings.bringToFront();await settings.waitForFunction(()=>document.querySelector('#title').textContent==='原创测试');
  await settings.locator('#lrc-file').setInputFiles({name:'original.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:00]原创第一句\n[00:10]原创第二句\n[00:20]原创第三句')});
  await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二句');
  await settings.locator('#lyrics-color').fill('#ffcc00');await settings.locator('#lyrics-color').dispatchEvent('change');
@@ -41,6 +41,10 @@ try{
  await board.evaluate(()=>document.querySelector('#full-text').scrollTop=100);await board.waitForTimeout(1100);assert.ok(await board.evaluate(()=>document.querySelector('#full-text').scrollTop)>0);
  await settings.locator('[data-settings-tab=playback]').click();await settings.locator('#offset').fill('1000');await settings.locator('#offset').dispatchEvent('change');await board.waitForTimeout(600);
  await board.locator('#pin').click();await board.waitForFunction(()=>document.querySelector('#pin').getAttribute('aria-pressed')==='false');
+ await board.evaluate(()=>window.boardHost.action('close-settings'));await board.waitForTimeout(2000);
+ const ps=`$all=Get-CimInstance Win32_Process; $ids=@(${child.pid}); do { $more=@($all | Where-Object { $_.ParentProcessId -in $ids -and $_.ProcessId -notin $ids } | Select-Object -ExpandProperty ProcessId); $ids += $more } while($more.Count); $own=@($all | Where-Object { $_.ProcessId -in $ids }); @{processes=$own.Count;workingSetBytes=($own | Measure-Object WorkingSetSize -Sum).Sum} | ConvertTo-Json -Compress`;
+ const memory=JSON.parse(execFileSync('pwsh',['-NoProfile','-Command',ps],{encoding:'utf8'}));await writeFile('test-results/rust-memory.json',JSON.stringify({...memory,note:'One process-tree working-set snapshot after closing the lazily-created settings window, with test lyrics; includes WebView2 and shared pages, not a guaranteed memory limit.'},null,2));console.log('Process-tree memory snapshot: '+Math.round(memory.workingSetBytes/1048576)+' MiB across '+memory.processes+' processes.');
+ await board.locator('#settings').click();const reopened=await retry(async()=>{const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(!p)throw Error('Settings did not reopen');return p;});await reopened.waitForFunction(()=>document.querySelector('#lyrics-color').value==='#ffcc00'&&document.querySelector('#text-shadow').checked);await board.evaluate(()=>window.boardHost.action('close-settings'));
  assert.deepEqual(errors,[]);console.log('Rust desktop checks passed: native IPC, sync/import, colors, overlays, shadow, images, manual timing, plain scrolling, offset and pin.');
  await board.evaluate(()=>window.boardHost.action('quit-test')).catch(e=>{if(!/closed|destroyed|detached/i.test(e.message))throw e;});assert.equal(await exit,0);
 }catch(e){console.error(log);if(board){console.error(await board.evaluate(()=>({text:document.body.innerText,tauri:!!window.__TAURI__})).catch(()=>({})));await board.screenshot({path:'test-results/rust-failure.png'}).catch(()=>{});const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(p)console.error(await p.evaluate(()=>document.body.innerText).catch(()=>''));}throw e;}finally{await browser?.close().catch(()=>{});if(child.exitCode===null){child.kill();await exit;}await writeFile('test-results/rust-desktop.log',log);}

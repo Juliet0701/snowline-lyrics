@@ -1,25 +1,15 @@
-# Verification — 0.4.2 / 2026-11-02
+# Verification — 0.5.0 / 2026-11-07
 
-- 32 automated tests passed, including overlay validation and persistence across restart.
-- Desktop checks exercise black/white 35% presets, custom strength, shadow, disabling and reset, as well as prior lyric flows.
+Environment: Windows 11 x64, Rust 1.99.1, Tauri 2.12.5 and system Edge WebView2.
 
-# Verification — 0.4.0 / 2026-11-02
+- Five Rust timing-core tests passed (repeated timestamps, Unicode, fractions, translations, offset, seek/pause and heartbeat limits).
+- Seven Rust backend/protocol tests passed (appearance validation, plain/synchronized imports, manual alignment, stale revisions, persistence/reload, corrupt configuration fallback, conservative version confirmation and Retry-After throttling).
+- Optimized release executable built successfully. It does not spawn Electron, Node or the old C# media helper.
+- Desktop checks passed against the optimized executable and the portable package: native IPC, original LRC import/display, image conversion and removal, saved image name, colors across all board text, overlay presets, shadow, manual alignment/pause, full-text scrolling, offset and pin.
+- Real Windows media API smoke check returned two sessions with zero read errors; only counts were logged.
+- Fixed public HTTPS service probes returned valid JSON from LRCLIB (20 records), LrcApi (10 records) and lyrics.ovh (one response). No fetched lyric text was logged, saved or bundled. These are point-in-time connectivity checks, not coverage guarantees.
+- Config migration reads and copies known files into the separate SnowlineLyricsRust directory; Electron's original profile is not written.
 
-- 32 automated tests passed; 26 JavaScript files passed syntax checks.
-- Packaged Electron desktop verification passed: colors, background-only opacity, valid PNG upload converted to local JPEG, successful image decoding, removal and reset. Existing lyric flows also passed.
-- Appearance persistence verified across service restart using isolated temporary profiles. No real user settings changed.
-- Local images are excluded from source export and portable packages.
+The renderer still uses WebView2 processes. Package size and executable size must not be confused with RAM use. Memory snapshots in test-results include the native process and its WebView2 descendants and may double-count shared pages; they are single-run observations, not a promised limit or a controlled Electron comparison.
 
-# Verification — 0.3.0 / 2026-10-23
-
-Environment: Windows 11 x64, Node 24.11.1, Electron 43.3.0.
-
-- 30 automated checks passed, including existing automatic/manual/plain modes and new second-source parsing, opt-in, version confirmation, priority, schema/error handling and safe fallback.
-- Syntax checks passed. Source/portable packaging audits exclude personal settings, caches, credentials and real fetched lyrics.
-- Public service probes and the actual new JSON client returned valid timestamped candidates. See SECOND-SOURCE.md for limits and details.
-- Desktop verification uses a private test profile, simulated media heartbeats and original lyric text. It checks the second-source switch, lookup, candidate selection and manual alignment in addition to earlier board functions.
-- The simulated reader refreshes liveness without inventing progress in metadata-only mode. Production still uses the read-only native Windows media reader; no audio capture or playback control was added.
-
-Actual test-player support remains limited to prior Windows 11 / YouTube Music PWA verification. This does not establish compatibility of every QQ Music version, Windows 10 or every song. Hosted GitHub Actions have not been executed by this local task. No security audit, signing or automatic-update claim is made.
-
-Real fetched lyrics are absent from source, screenshots and releases. This release does not add a local directory scanner or a paid provider.
+The application remains an unsigned Windows preview. Windows 10 and every third-party player have not been tested individually. Synced lyric matching depends on available metadata and provider content.

@@ -3,7 +3,7 @@ Snowline Lyrics 0.5.0 — Rust + Tauri
 1. Exit the old application using its tray menu.
 2. Extract the complete ZIP and run SnowlineLyrics.exe.
 3. Play a song. Open settings to select a player, choose lyric versions or customize appearance.
-4. Use the tray menu to show the board, open settings or exit. Closing a window hides it.
+4. Use the tray menu to show the board, open settings or exit. Closing the board hides it; closing settings releases that window.
 
 Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. No Node, Rust compiler or browser extension is needed for this portable build.
 

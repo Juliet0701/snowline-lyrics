@@ -29,6 +29,24 @@ async fn api(
     .await
     .map_err(|e| e.to_string())?
 }
+fn show_settings(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("settings") {
+        w.show().map_err(|e| e.to_string())?;
+        w.set_focus().map_err(|e| e.to_string())?;
+    } else {
+        tauri::WebviewWindowBuilder::new(
+            app,
+            "settings",
+            tauri::WebviewUrl::App("settings.html".into()),
+        )
+        .title("Snowline Lyrics · 设置")
+        .inner_size(960.0, 780.0)
+        .min_inner_size(720.0, 550.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
 fn save_window(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("board") {
         if let (Ok(pos), Ok(size)) = (w.outer_position(), w.inner_size()) {
@@ -40,11 +58,13 @@ fn save_window(app: &tauri::AppHandle) {
     }
 }
 #[tauri::command]
-fn board_action(
-    app: tauri::AppHandle,
-    state: State<StateData>,
-    name: String,
-) -> Result<bool, String> {
+async fn board_action(app: tauri::AppHandle, name: String) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || perform_action(app, name))
+        .await
+        .map_err(|e| e.to_string())?
+}
+fn perform_action(app: tauri::AppHandle, name: String) -> Result<bool, String> {
+    let state = app.state::<StateData>();
     let board = app.get_webview_window("board").ok_or("Missing board")?;
     match name.as_str() {
         "show" => {
@@ -53,11 +73,12 @@ fn board_action(
         }
         "hide" => board.hide().map_err(|e| e.to_string())?,
         "settings" => {
-            let w = app
-                .get_webview_window("settings")
-                .ok_or("Missing settings")?;
-            w.show().map_err(|e| e.to_string())?;
-            w.set_focus().map_err(|e| e.to_string())?;
+            show_settings(&app)?;
+        }
+        "close-settings" => {
+            if let Some(w) = app.get_webview_window("settings") {
+                w.close().map_err(|e| e.to_string())?;
+            }
         }
         "pin" => {
             let pinned = !state.pinned.load(Ordering::Relaxed);
@@ -200,9 +221,10 @@ fn main() {
                         }
                     }
                     "settings" => {
-                        if let Some(w) = app.get_webview_window("settings") {
-                            let _ = w.show();
-                        }
+                        let app = app.clone();
+                        tauri::async_runtime::spawn_blocking(move || {
+                            let _ = show_settings(&app);
+                        });
                     }
                     _ => {}
                 })
@@ -231,8 +253,10 @@ fn main() {
         })
         .on_window_event(|w, e| match e {
             tauri::WindowEvent::CloseRequested { api, .. } => {
-                api.prevent_close();
-                let _ = w.hide();
+                if w.label() == "board" {
+                    api.prevent_close();
+                    let _ = w.hide();
+                }
             }
             tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
                 if w.label() == "board" {
