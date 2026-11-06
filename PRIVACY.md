@@ -1,46 +1,11 @@
-# Privacy / 隐私说明
+# Privacy — Snowline Lyrics 0.5.0
 
-适用版本：Snowline Lyrics 0.3.0。更新日期：2026-10-23。
+The application reads Windows system media-session metadata: title, artist, album, playback status and available timeline. It does not capture audio, use the microphone, read player credentials, cookies or playlists, or collect telemetry.
 
-## 本机读取
+Default network queries go to lrclib.net with song title, artist and optionally duration. Only if enabled, the secondary synchronized source sends title/artist to api.lrc.cx; only if enabled and prior sources have no usable results, ordinary-lyric fallback sends title/artist to api.lyrics.ovh. These HTTPS services receive normal connection information, including IP address. No local image, file path or lyric-library file is uploaded. No account or API key is required by this implementation.
 
-应用只读访问 Windows 系统媒体会话，获取可用播放器标识、当前标题、歌手、专辑、时长、进度、播放状态及时间轴更新时间，用于选择来源及同步歌词。它不会控制播放，不访问音乐账号、浏览器 Cookies、完整播放列表或音频流；不录音、不使用麦克风、不包含音频识曲。
+The Rust edition stores its library, appearance (including resized local images), provider switches and window preferences in `%APPDATA%/SnowlineLyricsRust`. On first run it copies existing known configuration files from `%APPDATA%/SnowlineLyrics` into this independent directory if the destination files do not exist. Old files remain untouched. Delete the Rust data directory after exiting the app to clear its saved data.
 
-## 网络请求
+Background images are resized in the UI to at most 1600 pixels on the longest side and encoded as JPEG, stored locally in appearance.json. Imported lyrics and matched lyrics remain local; providers are queried with metadata, not the user's imported lyric file.
 
-应用自动向 `https://lrclib.net` 查询当前歌曲的标题、歌手、时长；搜索回退请求可能只包含歌名和歌手。HTTPS 服务端也会收到正常网络连接信息（例如 IP 地址、应用 User-Agent）。没有遥测、广告 SDK、账号系统、自动更新检查或独立分析服务。LRCLIB 是独立第三方，其服务行为不受本项目控制。
-
-**可选备用服务默认关闭。** 在设置中明确开启后，当 LRCLIB 没有可用结果或不可用时，会向 `https://api.lyrics.ovh` 发送歌名和歌手，获取普通歌词。该服务自身会访问多个上游来源，包括 LRCLIB，其行为不受本项目控制。关闭开关会取消当前查询并停止后续备用请求，已经发出的信息无法撤回。备用结果必须由用户确认后采用；不会发送本机密钥、账号信息或音频。
-
-应用查询有去重、超时和有限重试，并遵守服务返回的 Retry-After 等待提示。没有可用网络时，已有缓存或用户导入的歌词仍可使用，前提是播放器能提供歌曲与进度。
-
-## 可选第二同步源
-
-0.3.0 新增 LrcApi 公共服务，默认关闭。明确开启后，当 LRCLIB 未提供明确同步匹配或失败时，会向 `https://api.lrc.cx/jsonapi` 发送歌名和歌手。该第三方会聚合上游音乐/歌词服务，连接 IP、User-Agent 及查询元数据可能由服务及上游处理，其行为不受本项目控制。
-
-本程序不发送音频、本机文件路径、音乐登录信息、配对密钥或 LRC 文件；不访问翻译、登录、音乐下载或修改文件接口。不跟随返回数据中的封面、音频或文件地址。切换开关时会取消当前查询，已发送的数据无法撤回。
-
-## 本机保存
-
-默认在 `%APPDATA%/SnowlineLyrics` 保存：
-
-- `library.json`：已选择/导入的歌词、对应标题/歌手标签、服务记录 ID、歌曲指纹标识；这会反映使用过的歌曲。
-- `pairing.json`：本机服务地址及随机访问密钥。密钥用于本机窗口通信，不上传到歌词服务。
-- `window.json`：歌词板位置、尺寸及置顶状态。
-- `settings.json`：普通歌词备用服务、第二同步源是否开启，两个开关分别保存。
-- Electron 运行所需的 Chromium profile/cache 文件。
-
-手动对齐的句子、起始时间和歌词计时状态仅保存在运行内存，重启、换歌、断连后清除。它不会向音乐软件发送播放控制命令。
-
-本机服务只监听 `127.0.0.1`，采用随机端口、Origin/Host 校验和访问密钥；它不面向局域网提供服务。这并不是针对已经控制本机用户账户的恶意软件的隔离边界。
-
-## 删除与分享
-
-退出托盘应用后，可删除 `%APPDATA%/SnowlineLyrics` 清除应用数据。运行目录可直接删除，无全局安装或开机自启动修改。
-
-分享官方打包脚本生成的便携包或经过检查的源码包即可。请勿分享个人数据目录、真实歌词缓存、配对密钥、完整运行日志或包含私人信息的截图。开发测试的 `.local` 和 `test-results` 同样不公开。
-
-
-## 0.4.0 歌词板外观
-
-在设置的“歌词板外观”中修改背景颜色、歌词颜色、背景不透明度，或上传 PNG/JPG/WebP 图片（10 MB 以内）。图片居中裁切，缩小为最长 1600 像素的 JPEG 后，仅保存到本机应用数据目录的 appearance.json，不上传至歌词服务。透明度只影响背景。支持移除图片和恢复默认；设置会在下次启动时恢复。
+The interface is local and uses Tauri IPC; there is no listening loopback HTTP server or remote web content. Diagnostic desktop tests use an explicitly selected isolated profile and original test text; diagnostic options are not enabled during normal use. Song content and user profiles are excluded from source/release archives.

@@ -1,11 +1,9 @@
 # Contributing
 
-欢迎报告播放器适配、同步偏移或界面问题。请写明系统版本、播放器版本、复现步骤和预期行为。提交日志或截图前移除私人信息、账号、歌词正文及访问密钥。
+The current codebase uses Rust + Tauri 2 and a plain HTML/CSS/JavaScript interface in web/. Rust timing logic lives in rust/core, desktop integration and backend logic in src-tauri/src.
 
-开发流程见 README。提交前运行 `npm test`、`npm run check`、`npm run audit:source`。修改窗口或同步行为时运行 `npm run build:native` 和 `npm run test:desktop`，并说明测试使用的是实际播放器还是模拟数据。
+Use Rust 1.99.1 or a compatible newer toolchain, MSVC C++ tools, Windows SDK and WebView2. Node.js 22+ is needed only for developer scripts.
 
-请保持：只读媒体访问；不默认录音或采集遥测；第三方查询有超时、有限重试和缓存；外部文本只作为文本渲染；新增依赖保留原始许可证；测试与截图使用原创文案。
+Run cargo tests for rust/core and src-tauri, npm run check, npm run audit:source, and the native desktop checks before submitting changes. Desktop checks use original lyric text and an explicitly isolated profile; do not use production profile data in tests. See docs/VERIFICATION.md.
 
-不要提交 node_modules、dist、native/bin、个人数据、下载的真实歌词或私人截图。兼容性未验证时请明确标注，不把“所有音乐软件”写成已支持。
-
-贡献者应确保有权提交所贡献内容。提交的自有代码沿用本项目 MIT 许可证；第三方代码必须标注来源并保留其许可证。AI 辅助贡献应由提交者审查和测试。
+Keep media access read-only. New lyric providers must be opt-in unless agreed otherwise, send only necessary metadata, preserve candidate provenance, bound network responses and respect rate limits. Never add music, real song lyric fixtures, user caches, secrets or pet assets.

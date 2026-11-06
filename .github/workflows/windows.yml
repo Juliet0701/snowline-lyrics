@@ -1,7 +1,7 @@
-name: Verify and package Windows
+name: Verify and package Windows Rust
 on:
   push:
-    branches: [main]
+    branches: [main, migration/tauri-rust]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -9,7 +9,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
         with:
@@ -18,11 +18,13 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - run: rustup toolchain install 1.99.1 --profile minimal
+      - run: rustup default 1.99.1
       - run: npm ci
       - run: npm test
       - run: npm run check
       - run: npm run audit:source
-      - run: npm run build:native
+      - run: npm run build
       - run: npm run package:windows
       - name: Portable archive and checksum
         shell: pwsh
@@ -34,7 +36,7 @@ jobs:
           ((Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash+"  $name.zip") | Set-Content "dist/SHA256.txt"
       - uses: actions/upload-artifact@v7
         with:
-          name: snowline-lyrics-windows
+          name: snowline-lyrics-rust-windows
           path: |
             dist/*.zip
             dist/SHA256.txt

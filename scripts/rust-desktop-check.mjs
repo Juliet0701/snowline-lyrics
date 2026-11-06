@@ -18,7 +18,7 @@ try{
  const api=(path,data)=>board.evaluate(({path,data})=>window.__TAURI__.core.invoke('api',{path,data}),{path,data});
  const playback={trackId:'test-original',source:'fixture',title:'原创测试',artist:'原创作者',durationMs:30000,positionMs:10000,paused:true,pauseKnown:true,rate:1,timelineAvailable:true,capturedAt:Date.now()};
  await api('__test/playback',playback);
- await board.locator('#settings').click();await settings.bringToFront();
+ await board.locator('#settings').click();await settings.bringToFront();await settings.waitForFunction(()=>document.querySelector('#title').textContent==='原创测试');
  await settings.locator('#lrc-file').setInputFiles({name:'original.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:00]原创第一句\n[00:10]原创第二句\n[00:20]原创第三句')});
  await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二句');
  await settings.locator('#lyrics-color').fill('#ffcc00');await settings.locator('#lyrics-color').dispatchEvent('change');
@@ -40,7 +40,7 @@ try{
  await board.waitForFunction(()=>!document.querySelector('#full-text').hidden);
  await board.evaluate(()=>document.querySelector('#full-text').scrollTop=100);await board.waitForTimeout(1100);assert.ok(await board.evaluate(()=>document.querySelector('#full-text').scrollTop)>0);
  await settings.locator('[data-settings-tab=playback]').click();await settings.locator('#offset').fill('1000');await settings.locator('#offset').dispatchEvent('change');await board.waitForTimeout(600);
- await board.locator('#pin').click();assert.equal(await board.locator('#pin').getAttribute('aria-pressed'),'false');
+ await board.locator('#pin').click();await board.waitForFunction(()=>document.querySelector('#pin').getAttribute('aria-pressed')==='false');
  assert.deepEqual(errors,[]);console.log('Rust desktop checks passed: native IPC, sync/import, colors, overlays, shadow, images, manual timing, plain scrolling, offset and pin.');
- await board.evaluate(()=>window.boardHost.action('quit-test'));assert.equal(await exit,0);
-}catch(e){console.error(log);throw e;}finally{await browser?.close().catch(()=>{});if(child.exitCode===null){child.kill();await exit;}await writeFile('test-results/rust-desktop.log',log);}
+ await board.evaluate(()=>window.boardHost.action('quit-test')).catch(e=>{if(!/closed|destroyed|detached/i.test(e.message))throw e;});assert.equal(await exit,0);
+}catch(e){console.error(log);if(board){console.error(await board.evaluate(()=>({text:document.body.innerText,tauri:!!window.__TAURI__})).catch(()=>({})));await board.screenshot({path:'test-results/rust-failure.png'}).catch(()=>{});const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(p)console.error(await p.evaluate(()=>document.body.innerText).catch(()=>''));}throw e;}finally{await browser?.close().catch(()=>{});if(child.exitCode===null){child.kill();await exit;}await writeFile('test-results/rust-desktop.log',log);}

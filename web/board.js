@@ -2,16 +2,16 @@ import {positionAt,locateLyric} from '/core.mjs';
 const $=id=>document.getElementById(id);
 let state,boot,busy=false,disconnected=false,querying=false,notice='',noticeUntil=0,textKey='',watchedQuery=null;
 const time=ms=>{const n=Math.floor(ms/1000);return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;};
-async function poll(){if(busy)return;busy=true;try{
+async function poll(){if(document.hidden)return;if(busy)return;busy=true;try{
  boot||=await(await fetch('/api/bootstrap')).json();
  const r=await fetch('/api/state',{headers:{'X-Lyrics-Token':boot.token},signal:AbortSignal.timeout(2200)});if(!r.ok)throw new Error('Service unavailable');
- state=await r.json();disconnected=false;
+ state=await r.json();disconnected=false;if(imageVersion!==state.appearance.imageVersion){imageVersion=state.appearance.imageVersion;imageUrl=imageVersion?await window.__TAURI__.core.invoke('api',{path:'background',data:null}):'';appearanceKey='';}
  if(watchedQuery&&state.playback?.trackId!==watchedQuery)watchedQuery=null;
  if(watchedQuery&&state.lyrics?.status!=='searching'){notice=state.lyrics.warning||state.lyrics.message;noticeUntil=Date.now()+6500;watchedQuery=null;}
 }catch{disconnected=true;}finally{busy=false;}}
-let appearanceKey='';
-function paint(){
- const a=state?.appearance;if(a&&JSON.stringify(a)!==appearanceKey){appearanceKey=JSON.stringify(a);const style=document.documentElement.style;style.setProperty('--board-background',a.backgroundColor);style.setProperty('--lyrics-color',a.lyricsColor);style.setProperty('--board-opacity',String(a.opacity));const channel=a.overlayColor==='white'?'255,255,255':'0,0,0';style.setProperty('--board-overlay',`rgba(${channel},${a.overlayOpacity})`);const rgb=a.lyricsColor.slice(1).match(/../g).map(v=>parseInt(v,16)),light=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722>140;style.setProperty('--text-shadow',a.textShadow?`0 1px 3px ${light?'#000e':'#fffe'},0 0 5px ${light?'#0009':'#fff9'}`:'none');style.setProperty('--board-image',a.imageVersion?`url("/background?v=${a.imageVersion}")`:'none');}
+let appearanceKey='',imageVersion='',imageUrl='';
+function paint(){if(document.hidden)return;
+ const a=state?.appearance;if(a&&JSON.stringify(a)!==appearanceKey){appearanceKey=JSON.stringify(a);const style=document.documentElement.style;style.setProperty('--board-background',a.backgroundColor);style.setProperty('--lyrics-color',a.lyricsColor);style.setProperty('--board-opacity',String(a.opacity));const channel=a.overlayColor==='white'?'255,255,255':'0,0,0';style.setProperty('--board-overlay',`rgba(${channel},${a.overlayOpacity})`);const rgb=a.lyricsColor.slice(1).match(/../g).map(v=>parseInt(v,16)),light=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722>140;style.setProperty('--text-shadow',a.textShadow?`0 1px 3px ${light?'#000e':'#fffe'},0 0 5px ${light?'#0009':'#fff9'}`:'none');style.setProperty('--board-image',imageUrl?`url("${imageUrl}")`:'none');}
 
  const p=state?.playback,display=state?.displayPlayback,lines=state?.lines||[],pos=positionAt(display),lyric=locateLyric(lines,pos,state?.offsetMs||0),mode=state?.mode;
  $('track').textContent=p?[p.title,p.artist].filter(Boolean).join(' · '):'SNOWLINE LYRICS';
@@ -33,3 +33,5 @@ $('reload').onclick=async()=>{
  catch(e){notice=e.message;}finally{noticeUntil=Date.now()+5000;querying=false;await poll();paint();}
 };
 void action('state');await poll();paint();setInterval(poll,500);setInterval(paint,100);
+
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)void poll().then(paint);});

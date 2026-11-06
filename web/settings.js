@@ -4,7 +4,7 @@ let state,busy=false,sourcesKey='',versionsKey='',linesKey='',selected=-1;
 const labels={automatic:'自动同步',manual:'手动对齐',plain:'全文阅读','align-required':'等待对齐',waiting:'等待歌词'};
 const time=ms=>{const n=Math.floor(ms/1000);return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;};
 async function api(path,data){const r=await fetch('/api/'+path,{method:data===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-Lyrics-Token':boot.token},body:data===undefined?undefined:JSON.stringify(data)});const result=await r.json();if(!r.ok)throw new Error(result.error);return result;}
-async function poll(){
+async function poll(){if(document.hidden)return;
  if(busy)return;busy=true;
  try{
   state=await api('state');syncAppearance(state.appearance);const p=state.playback,m=state.media;
@@ -29,7 +29,7 @@ async function poll(){
  }catch(e){$('status').textContent='连接遇到问题';$('media-status').textContent=e.message;}
  finally{busy=false;}
 }
-function paint(){if(!state)return;const p=state.displayPlayback,ms=positionAt(p),line=locateLyric(state.lines,ms,state.offsetMs);$('time').textContent=p?time(ms):'待对齐';$('progress').max=p?.durationMs||Math.max(ms,1);$('progress').value=p?ms:0;$('current').textContent=state.mode==='align-required'?'请在下方点选当前句':state.mode==='plain'?'全文阅读':line.current||(state.lines.length?'♪':state.lyrics?.status==='searching'?'正在查找歌词…':'♫');$('next').textContent=state.mode==='plain'?'歌词没有时间戳，可在歌词板或下方滚动阅读。':line.next||(!state.lines.length?state.lyrics?.message||'':'');}
+function paint(){if(document.hidden)return;if(!state)return;const p=state.displayPlayback,ms=positionAt(p),line=locateLyric(state.lines,ms,state.offsetMs);$('time').textContent=p?time(ms):'待对齐';$('progress').max=p?.durationMs||Math.max(ms,1);$('progress').value=p?ms:0;$('current').textContent=state.mode==='align-required'?'请在下方点选当前句':state.mode==='plain'?'全文阅读':line.current||(state.lines.length?'♪':state.lyrics?.status==='searching'?'正在查找歌词…':'♫');$('next').textContent=state.mode==='plain'?'歌词没有时间戳，可在歌词板或下方滚动阅读。':line.next||(!state.lines.length?state.lyrics?.message||'':'');}
 $('source').onchange=async()=>{try{await api('media/source',{id:$('source').value});await poll();}catch(e){$('media-status').textContent=e.message;}};
 $('retry').onclick=async()=>{const b=$('retry');b.disabled=true;try{await api('lyrics/search',{trackId:state.playback.trackId});await poll();}catch(e){$('lyrics-status').textContent=e.message;}finally{b.disabled=state?.lyrics?.status==='searching';}};
 $('offset').oninput=()=>{$('offset-value').textContent=$('offset').value+' ms';};
@@ -57,3 +57,5 @@ $('remove-background').onclick=()=>void saveAppearance({image:null});
 $('reset-appearance').onclick=()=>void saveAppearance({backgroundColor:'#14232e',lyricsColor:'#def4e7',opacity:.95,image:null,overlayColor:'black',overlayOpacity:0,textShadow:false});
 $('background-file').onchange=async()=>{const file=$('background-file').files[0];if(!file)return;try{if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>10*1024*1024)throw new Error('请选择 10 MB 以内的 PNG、JPG 或 WebP 图片');const bitmap=await createImageBitmap(file);try{const scale=Math.min(1,1600/bitmap.width,1600/bitmap.height),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));const ctx=canvas.getContext('2d');ctx.fillStyle='#14232e';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);const image=canvas.toDataURL('image/jpeg',.85);if(image.length>1400*1024)throw new Error('图片细节过多，请换一张较小的图片');await saveAppearance({image,imageName:file.name.slice(0,160)});}finally{bitmap.close();}}catch(e){$('appearance-result').textContent=e.message||'无法读取此图片';}finally{$('background-file').value='';}};
 await poll();paint();setInterval(poll,500);setInterval(paint,100);
+
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)void poll().then(paint);});

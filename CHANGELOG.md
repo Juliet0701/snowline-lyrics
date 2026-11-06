@@ -1,3 +1,10 @@
+# 0.5.0 — Rust + Tauri
+
+- Replaced Electron, Node background service and C# media helper with Rust + Tauri and direct Windows media APIs.
+- Preserved lyric modes, providers, local imports, candidate confirmation, overlays, colors, images, tray and pin controls.
+- Added isolated Rust profile with read-only migration of previous settings.
+- Switched builds, checks and source/portable packaging to Rust.
+
 # 0.4.2
 
 - 新增黑白背景遮罩、强度调节、35% 快捷选项和关闭按钮。

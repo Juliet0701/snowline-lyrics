@@ -1,26 +1,24 @@
 {
   "name": "snowline-lyrics",
   "productName": "Snowline Lyrics",
-  "version": "0.4.2",
-  "description": "A floating Windows lyric board powered by system media sessions and timestamped lyrics.",
+  "version": "0.5.0",
+  "description": "A native Rust and Tauri Windows lyric board with synchronized lyrics.",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "main": "desktop/main.cjs",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "start": "electron .",
-    "test": "node --test tests/*.test.mjs",
+    "start": "cargo run --manifest-path src-tauri/Cargo.toml",
+    "test": "cargo test --manifest-path rust/core/Cargo.toml && cargo test --manifest-path src-tauri/Cargo.toml",
     "check": "node scripts/check.mjs",
-    "build:native": "pwsh -NoProfile -File scripts/build-media.ps1",
-    "package:windows": "node scripts/package-windows.mjs",
+    "build": "cargo build --release --manifest-path src-tauri/Cargo.toml",
+    "package:windows": "node scripts/package-rust.mjs",
     "audit:source": "node scripts/audit-source.mjs",
-    "test:desktop": "node scripts/desktop-check.mjs"
+    "test:desktop": "node scripts/rust-desktop-check.mjs"
   },
   "devDependencies": {
-    "electron": "43.3.0",
     "playwright-core": "1.56.1"
   }
 }

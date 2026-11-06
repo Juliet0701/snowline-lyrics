@@ -46,7 +46,7 @@ fn plain(raw: &str) -> String {
         .trim()
         .to_owned()
 }
-fn position(p: &Value, now: i64) -> i64 {
+pub fn position(p: &Value, now: i64) -> i64 {
     let elapsed = if flag(p, "paused") {
         0
     } else {
@@ -93,12 +93,18 @@ impl Backend {
                 appearance[k] = v.clone();
             }
         }
+        if validate_appearance(&appearance).is_err() {
+            appearance = defaults();
+        }
+        let raw_settings = load("settings.json", json!({}));
+        let settings = json!({"backupEnabled":flag(&raw_settings,"backupEnabled"),"syncBackupEnabled":flag(&raw_settings,"syncBackupEnabled")});
+        let mut library = load("library.json", json!({}));
+        if !library.is_object() {
+            library = json!({});
+        }
         Self {
-            settings: load(
-                "settings.json",
-                json!({"backupEnabled":false,"syncBackupEnabled":false}),
-            ),
-            library: load("library.json", json!({})),
+            settings,
+            library,
             dir,
             appearance,
             playback: Value::Null,
@@ -222,6 +228,20 @@ impl Backend {
                 ));
             }
         }
+        if let Some(all) = lyrics["candidates"].as_array() {
+            lyrics["candidates"] = json!(all
+                .iter()
+                .map(|c| {
+                    let mut c = c.clone();
+                    if let Some(o) = c.as_object_mut() {
+                        o.remove("lines");
+                        o.remove("text");
+                        o.remove("score");
+                    }
+                    c
+                })
+                .collect::<Vec<_>>());
+        }
         let mut appearance = self.appearance.clone();
         appearance["imageVersion"] = json!(self.appearance["image"]
             .as_str()
@@ -304,8 +324,10 @@ fn clean(s: &str) -> String {
 fn candidates(rows: Vec<Value>, p: &Value) -> Vec<Value> {
     let mut out = Vec::new();
     for r in rows.into_iter().take(100) {
-        let provider=r["provider"].as_str().unwrap_or("lrclib");
-        if provider=="lrclib" && r["id"].as_u64().unwrap_or(0)==0 {continue;}
+        let provider = r["provider"].as_str().unwrap_or("lrclib");
+        if provider == "lrclib" && r["id"].as_u64().unwrap_or(0) == 0 {
+            continue;
+        }
 
         let lrc = text(&r, "syncedLyrics");
         if lrc.len() > 400 * 1024 {
@@ -326,7 +348,7 @@ fn candidates(rows: Vec<Value>, p: &Value) -> Vec<Value> {
                 .collect::<Vec<_>>()
                 .join("\n")
         };
-        if body.trim().is_empty() || body.len()>400*1024 {
+        if body.trim().is_empty() || body.len() > 400 * 1024 {
             continue;
         }
         let title = text(&r, "trackName");
@@ -390,7 +412,15 @@ fn request(client: &reqwest::blocking::Client, url: reqwest::Url) -> Result<Valu
                 .headers()
                 .get("retry-after")
                 .and_then(|v| v.to_str().ok())
-                .and_then(|s| s.parse::<u64>().ok())
+                .and_then(|s| {
+                    s.parse::<u64>().ok().or_else(|| {
+                        httpdate::parse_http_date(s).ok().map(|d| {
+                            d.duration_since(std::time::SystemTime::now())
+                                .unwrap_or_default()
+                                .as_secs()
+                        })
+                    })
+                })
                 .unwrap_or(0);
             if retry > 0 {
                 BACKOFF.fetch_max(
@@ -666,7 +696,16 @@ pub fn route(shared: &Shared, path: &str, data: Value) -> Result<Value, String> 
     let now = media::now_ms();
     match path {
         "bootstrap" => return Ok(json!({"token":"native-ipc","version":"0.5.0"})),
-        "state" => return Ok(b.snapshot()),
+        "state" => {
+            if !b.demo && !b.playback.is_null() && now - num(&b.playback, "receivedAt") > 6500 {
+                b.playback = Value::Null;
+                b.manual = Value::Null;
+                b.generation += 1;
+                b.media["status"] = json!("error");
+                b.media["message"] = json!("媒体读取超时，等待恢复");
+            }
+            return Ok(b.snapshot());
+        }
         "background" => return Ok(b.appearance["image"].clone()),
         "media/source" => {
             let id = text(&data, "id");
@@ -850,11 +889,11 @@ fn validate_appearance(a: &Value) -> Result<(), String> {
 mod tests {
     use super::*;
     fn make() -> Shared {
-        static SEQ:std::sync::atomic::AtomicU64=std::sync::atomic::AtomicU64::new(0);
+        static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let dir = std::env::temp_dir().join(format!(
             "snowline-rust-test-{}-{}",
             std::process::id(),
-            SEQ.fetch_add(1,std::sync::atomic::Ordering::Relaxed)
+            SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
         Arc::new(Mutex::new(Backend::new(dir)))
     }
@@ -950,4 +989,92 @@ mod tests {
 pub fn fixture() -> bool {
     std::env::var("SNOWLINE_RUST_FIXTURE").as_deref() == Ok("1")
         && std::env::var_os("SNOWLINE_RUST_TEST_DATA").is_some()
+}
+pub fn network_check() -> Result<(), String> {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(18))
+        .redirect(reqwest::redirect::Policy::none())
+        .user_agent("Snowline-Lyrics/0.5.0")
+        .build()
+        .map_err(|e| e.to_string())?;
+    for (name, u) in [
+        (
+            "LRCLIB",
+            url(
+                "https://lrclib.net/api/search",
+                &[
+                    ("track_name", "Yellow".into()),
+                    ("artist_name", "Coldplay".into()),
+                ],
+            ),
+        ),
+        (
+            "LrcApi",
+            url(
+                "https://api.lrc.cx/jsonapi",
+                &[("title", "Yellow".into()), ("artist", "Coldplay".into())],
+            ),
+        ),
+        (
+            "lyrics.ovh",
+            reqwest::Url::parse("https://api.lyrics.ovh/v1/Coldplay/Yellow").unwrap(),
+        ),
+    ] {
+        match request(&client, u) {
+            Ok(v) => println!(
+                "{}: valid JSON, {} records",
+                name,
+                v.as_array().map(Vec::len).unwrap_or(1)
+            ),
+            Err(e) => println!("{}: {}", name, e),
+        }
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod protocol_tests {
+    use super::*;
+    #[test]
+    fn retry_after_stops_immediate_retries() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let t = std::thread::spawn(move || {
+            let (mut s, _) = listener.accept().unwrap();
+            let mut buf = [0; 4096];
+            let _ = s.read(&mut buf);
+            s.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 120\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").unwrap();
+        });
+        let c = reqwest::blocking::Client::builder()
+            .no_proxy()
+            .timeout(Duration::from_secs(3))
+            .build()
+            .unwrap();
+        assert!(request(
+            &c,
+            reqwest::Url::parse(&format!("http://{}/", address)).unwrap()
+        )
+        .is_err());
+        assert!(BACKOFF.load(std::sync::atomic::Ordering::Relaxed) > media::now_ms() + 115000);
+        BACKOFF.store(0, std::sync::atomic::Ordering::Relaxed);
+        t.join().unwrap();
+    }
+    #[test]
+    fn missing_duration_and_secondary_sources_require_confirmation() {
+        let p = json!({"title":"Song","artist":"Artist","durationMs":30000});
+        let row = json!({"id":"lrcapi:0123456789abcdef01234567","provider":"lrcapi","trackName":"Song","artistName":"Artist","duration":30,"manualOnly":true,"syncedLyrics":"[00:00]Original one\n[00:10]Original two"});
+        assert!(automatic(&candidates(vec![row], &p)).is_none());
+    }
+    #[test]
+    fn corrupt_saved_settings_do_not_break_startup() {
+        let dir = std::env::temp_dir().join(format!("snowline-corrupt-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("appearance.json"), "{\"opacity\":5}").unwrap();
+        std::fs::write(dir.join("library.json"), "[]").unwrap();
+        std::fs::write(dir.join("settings.json"), "false").unwrap();
+        let b = Backend::new(dir);
+        assert_eq!(b.appearance, defaults());
+        assert!(b.library.is_object());
+        assert_eq!(b.settings["backupEnabled"], false);
+    }
 }

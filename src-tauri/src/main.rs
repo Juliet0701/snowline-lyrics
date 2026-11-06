@@ -74,6 +74,13 @@ fn board_action(
     Ok(state.pinned.load(Ordering::Relaxed))
 }
 fn main() {
+    if std::env::args().any(|a| a == "--network-check") {
+        if let Err(e) = backend::network_check() {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        }
+        return;
+    }
     if std::env::args().any(|a| a == "--media-check") {
         match media::read() {
             Ok(v) => println!(
@@ -207,6 +214,9 @@ fn main() {
                         let mut b = backend.lock().unwrap();
                         if !b.playback.is_null() {
                             let mut p = b.playback.clone();
+                            if p["timelineAvailable"].as_bool() == Some(true) {
+                                p["positionMs"] = json!(backend::position(&p, media::now_ms()));
+                            }
                             p["capturedAt"] = json!(media::now_ms());
                             b.ingest(p);
                         }

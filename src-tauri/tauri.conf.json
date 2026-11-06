@@ -4,7 +4,7 @@
   "version": "0.5.0",
   "identifier": "io.github.juliet0701.snowline-lyrics",
   "build": {
-    "frontendDist": "../rust-ui"
+    "frontendDist": "../web"
   },
   "app": {
     "withGlobalTauri": true,
