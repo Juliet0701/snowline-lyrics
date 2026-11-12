@@ -1,3 +1,10 @@
+# 0.6.0
+
+- Add persistent Simplified Chinese / English interface selection in settings only; board follows automatically.
+- Localize window titles, tray actions, status messages, tooltips and accessibility labels without translating song metadata or lyrics.
+- Provide English README.md and Chinese README.zh-CN.md.
+- Retain 0.5.1 board dimensions, typography, appearance and dragging.
+
 # 0.5.1
 
 - Remove the Windows undecorated-window white border/system shadow and redundant card outline.

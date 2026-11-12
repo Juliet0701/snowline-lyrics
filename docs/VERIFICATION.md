@@ -1,3 +1,14 @@
+# Verification — 0.6.0 / 2026-11-12
+
+- Based on the restored 0.5.1 baseline. Board CSS and drag markup are unchanged; window configuration differs only in the version field.
+- Remote Windows workflow 43136668932 passed language checks, 13 Rust tests, syntax/source audit, optimized build and portable packaging. Runtime build commit: bc3e65613ffffc76fd10d6a4121b29b2711ef520.
+- Browser localization checks passed for both settings and board, including English controls at the unchanged minimum window size.
+- The downloaded artifact SHA-256 matched the GitHub workflow checksum before execution.
+- Native desktop checks passed against that artifact: language changes in settings propagate to the board, English UI text coverage, language persistence after settings close/reopen, original song metadata and lyrics preserved (including lyric text identical to a UI translation key), manual alignment and pause preserved while switching languages, and existing images, colors, overlays, import, scrolling, offset and pin behavior.
+- Language changes persist independently and do not cancel lyric searches. Unsupported locale preferences fall back to English. No translation API or new metadata transmission was added.
+- Test profiles were isolated under the project workspace. No real song lyric content was bundled. Original 0.5.1 binaries and user configuration remain available for rollback.
+- Compilation ran on GitHub rather than creating another multi-GB local target cache.
+
 # Verification — 0.5.0 / 2026-11-07
 
 Environment: Windows 11 x64, Rust 1.99.1, Tauri 2.12.5 and system Edge WebView2.

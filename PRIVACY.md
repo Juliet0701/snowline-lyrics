@@ -9,3 +9,7 @@ The Rust edition stores its library, appearance (including resized local images)
 Background images are resized in the UI to at most 1600 pixels on the longest side and encoded as JPEG, stored locally in appearance.json. Imported lyrics and matched lyrics remain local; providers are queried with metadata, not the user's imported lyric file.
 
 The interface is local and uses Tauri IPC; there is no listening loopback HTTP server or remote web content. Diagnostic desktop tests use an explicitly selected isolated profile and original test text; diagnostic options are not enabled during normal use. Song content and user profiles are excluded from source/release archives.
+
+## Interface language
+
+The interface language is stored locally in settings.json and cached in local WebView2 storage for initial rendering. First use reads the local browser/system language preference. It is not sent to lyric providers and does not use a translation service. Song metadata, lyric text and local filenames are not translated.

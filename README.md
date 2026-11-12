@@ -18,6 +18,8 @@ Click **中文** or **English** at the top of the settings window. Your choice i
 
 On first use, a Chinese system language selects Simplified Chinese; other languages default to English. **Song titles, artist names and lyric text are never translated.** This release retains the window dimensions, typography and dragging behavior of version 0.5.1.
 
+![English settings; song metadata and lyrics remain in their original language](docs/settings-en.png)
+
 ## Reading modes
 
 | Mode | When to use it | How it works |
