@@ -260,7 +260,7 @@ fn main() {
                 }
             }
             let _ = board.show();
-            let en = english_ui(app);
+            let en = english_ui(app.handle());
             let show = MenuItem::with_id(
                 app,
                 "show",
