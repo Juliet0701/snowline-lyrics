@@ -97,7 +97,7 @@ impl Backend {
             appearance = defaults();
         }
         let raw_settings = load("settings.json", json!({}));
-        let settings = json!({"backupEnabled":flag(&raw_settings,"backupEnabled"),"syncBackupEnabled":flag(&raw_settings,"syncBackupEnabled")});
+        let settings = json!({"backupEnabled":flag(&raw_settings,"backupEnabled"),"syncBackupEnabled":flag(&raw_settings,"syncBackupEnabled"),"language":raw_settings["language"].as_str().filter(|v|["zh-CN","en"].contains(v))});
         let mut library = load("library.json", json!({}));
         if !library.is_object() {
             library = json!({});
@@ -733,17 +733,28 @@ pub fn route(shared: &Shared, path: &str, data: Value) -> Result<Value, String> 
         "settings" => {
             let mut next = b.settings.clone();
             for key in ["backupEnabled", "syncBackupEnabled"] {
-                if let Some(v) = data.get(key) {
-                    if !v.is_boolean() {
+                if let Some(value) = data.get(key) {
+                    if !value.is_boolean() {
                         return Err("无效开关".into());
                     }
-                    next[key] = v.clone();
+                    next[key] = value.clone();
                 }
             }
+            if let Some(value) = data.get("language") {
+                if !matches!(value.as_str(), Some("en" | "zh-CN")) {
+                    return Err("不支持的界面语言".into());
+                }
+                next["language"] = value.clone();
+            }
+            let changed = ["backupEnabled", "syncBackupEnabled"]
+                .iter()
+                .any(|key| next[*key] != b.settings[*key]);
             b.save("settings.json", &next)?;
             b.settings = next;
-            b.generation += 1;
-            b.lookup = json!({"status":"idle","candidates":[]});
+            if changed {
+                b.generation += 1;
+                b.lookup = json!({"status":"idle","candidates":[]});
+            }
         }
         "appearance" => {
             let mut next = b.appearance.clone();
@@ -1076,5 +1087,32 @@ mod protocol_tests {
         assert_eq!(b.appearance, defaults());
         assert!(b.library.is_object());
         assert_eq!(b.settings["backupEnabled"], false);
+    }
+}
+
+#[cfg(test)]
+mod language_tests {
+    use super::*;
+    #[test]
+    fn language_is_validated_persisted_and_does_not_cancel_lyrics() {
+        let dir = std::env::temp_dir().join(format!("snowline-language-{}", std::process::id()));
+        let shared = Arc::new(Mutex::new(Backend::new(dir.clone())));
+        {
+            let mut b = shared.lock().unwrap();
+            b.generation = 42;
+            b.lookup = json!({"status":"searching","candidates":[]});
+        }
+        route(&shared, "settings", json!({"language":"en"})).unwrap();
+        {
+            let b = shared.lock().unwrap();
+            assert_eq!(b.generation, 42);
+            assert_eq!(b.lookup["status"], "searching");
+        }
+        let reloaded = Backend::new(dir);
+        assert_eq!(reloaded.settings["language"], "en");
+        assert_eq!(reloaded.settings["backupEnabled"], false);
+        assert!(route(&shared, "settings", json!({"language":"xx"})).is_err());
+        route(&shared, "settings", json!({"backupEnabled":true})).unwrap();
+        assert_eq!(shared.lock().unwrap().settings["language"], "en");
     }
 }

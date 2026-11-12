@@ -1,50 +1,77 @@
 # Snowline Lyrics
 
-A floating Windows lyric board built with **Rust + Tauri 2**. The UI uses system WebView2; the application does not bundle Electron, Chromium or Node.js.
+**English** | [简体中文](README.zh-CN.md)
 
-独立的 Windows 桌面歌词板：读取系统播放器信息，查找歌词，以可拖动、可置顶的透明窗口显示。
+A floating lyric board for Windows, built with Rust and Tauri 2. It reads system media sessions and displays synchronized or plain lyrics in an always-on-top window.
 
-## 下载与运行
+## Download and run
 
-1. 在 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.5.0-win-x64.zip`，完整解压。
-2. 先从托盘退出旧版，然后运行 `SnowlineLyrics.exe`。
-3. 在音乐软件播放歌曲；设置中可以选择播放器、歌词版本及外观。
+1. Download `Snowline-Lyrics-0.6.0-win-x64.zip` from [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) and extract the complete archive.
+2. Quit the previous version from its tray menu, then open `SnowlineLyrics.exe`.
+3. Play a song in your music app. Open **Settings** to select a player, confirm a lyric version, or customize the board.
 
-要求 Windows 10/11 x64 和 Microsoft Edge WebView2 Runtime（Windows 11 通常已具备）。普通用户不需要 Node.js、Rust、浏览器扩展或音乐账号授权。当前为未签名预览版。
+Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. You do not need Node.js, Rust, a browser extension, a music-account login or an API key to use the portable application. This is an unsigned preview; Windows 11 has been tested, while Windows 10 and every third-party player have not been individually verified.
 
-## 歌词与外观
+## Switch the interface language
 
-- 播放器提供进度时自动同步播放、暂停和跳转。
-- 只有歌名时，选择时间戳歌词并点选当前句，启动独立歌词计时；不会控制音乐播放器。
-- 普通歌词可全文滚动阅读；可导入本机 UTF-8 `.lrc` 或 `.txt`。
-- 顶部 ↻ 重新查找；置顶、隐藏、托盘恢复；窗口位置保存。
-- 设置按外观、播放、歌词源、关于分组。
-- 背景颜色／图片／透明度，歌词及标题颜色，黑白遮罩、强度快捷选项、文字阴影；均保存在本机。
+Click **中文** or **English** at the top of the settings window. Your choice is saved, and the lyric board, window title and tray menu follow it. There is no extra language button on the board.
 
-默认来源为 LRCLIB。LrcApi 同步备用源及 lyrics.ovh 普通歌词源均需手动开启；备用候选需确认。查找只发送歌名、歌手及必要时的时长。公共服务可能缺歌、限流或不可用，不能保证匹配正确或所有播放器都支持进度。
+On first use, a Chinese system language selects Simplified Chinese; other languages default to English. **Song titles, artist names and lyric text are never translated.** This release retains the window dimensions, typography and dragging behavior of version 0.5.1.
 
-## 从 Electron 版本升级与回退
+## Reading modes
 
-首次运行会**只读复制**旧 `%APPDATA%/SnowlineLyrics` 中的歌词缓存、外观及配置到独立的 `%APPDATA%/SnowlineLyricsRust`，不会覆盖旧配置。其后两个版本各自保存设置。若需要回退，退出 Rust 版并重新打开 0.4.2 即可。
+| Mode | When to use it | How it works |
+| --- | --- | --- |
+| Automatic sync | Your player supplies a timeline and the lyrics have timestamps | Follows playback, pause and seeking |
+| Manual alignment | The song is known, but the player supplies no useful timeline | Select the current line in settings and start the independent lyric clock |
+| Full lyrics | Only plain text is available | Scroll through the lyrics on the board or in settings |
 
-Rust 版直接调用 Windows Media.Control，不运行旧 C# 媒体组件或本地 Node HTTP 服务。UI 通过限定的原生 IPC 调用 Rust。隐藏窗口暂停界面刷新；设置窗口按需创建，关闭时释放。保留 HTML/CSS/JavaScript 用于界面渲染。
+Manual alignment never controls music playback. If the player reports reliable pause status, the clock follows it. Otherwise, pause the lyric clock when pausing your music. After seeking, choose a line again; timing may drift during long playback. A song/source change or changed lyrics clears manual alignment.
 
-## 源码开发
+You can import your own UTF-8 `.lrc` or `.txt` file for the current song. Imported files and cached matches stay on your device. Plain text is not converted into fabricated timestamped lyrics.
 
-需要 Rust 1.99.1 或兼容更新版本、MSVC C++ 构建工具及 Windows SDK、WebView2。Node.js 22+ 仅用于开发检查、打包和桌面自动化脚本。
+## Controls and appearance
+
+- Use **↻** on the board to search again. Current imported or confirmed lyrics are preserved while alternatives are searched.
+- Drag the board to move it, resize it at the edges, and toggle **Pin** to keep it on top.
+- Customize the background color, image and opacity, lyric color, black/white overlay and text shadow in settings.
+- Images are resized locally, centered and cropped to fill. Overlay and background opacity are separate controls.
+- Closing the board hides it; restore it from the tray menu. Closing settings releases that window. Quit from the tray menu.
+
+## Lyric sources
+
+**LRCLIB** is enabled by default. It provides timestamped and plain lyrics. Confident matches can load automatically; uncertain versions require confirmation.
+
+**LrcApi** is an optional, free public synced-lyric source at `https://api.lrc.cx/jsonapi`, off by default. If LRCLIB has no confident synced match, it receives the title and artist. Its candidates always need confirmation. Only directly returned lyric text is used; returned file paths and artwork links are not followed.
+
+**lyrics.ovh** is an optional plain-text fallback, also off by default. It receives the title and artist only when earlier sources have no usable result. Select a version to read the returned text.
+
+Public services may be slow, rate-limited, unavailable or inaccurate. Coverage is not guaranteed. Live, cover and edited recordings may not match. A public endpoint or open-source server license does not grant rights to lyric content. See [third-party notices](THIRD-PARTY-NOTICES.md).
+
+## Privacy and upgrades
+
+The application reads Windows media metadata and available playback progress. It does not record audio, use the microphone, read music-account credentials or cookies, or collect telemetry. Network lyric requests send only the required title, artist and optional duration. Your local images, imported files and cache files are not uploaded. See [PRIVACY.md](PRIVACY.md).
+
+The Rust edition stores data in `%APPDATA%/SnowlineLyricsRust`. On first use it can copy known settings from the old `%APPDATA%/SnowlineLyrics` profile without modifying the original. Language selection is saved in `settings.json`. Keep your previous release and profile if you need rollback.
+
+The runtime uses system WebView2, with Rust handling media access, lyric queries and persistence through local Tauri commands. It does not bundle Electron or run a Node HTTP server or C# media helper. A smaller download does not imply a proportional reduction in RAM use.
+
+## Development
+
+Use Rust 1.99.1 or a compatible newer MSVC toolchain, Windows SDK and WebView2. Node.js 22+ is needed for development scripts, packaging and desktop automation only.
 
 ```powershell
-cargo test --manifest-path rust/core/Cargo.toml
-cargo test --manifest-path src-tauri/Cargo.toml
-cargo run --manifest-path src-tauri/Cargo.toml
-cargo build --release --manifest-path src-tauri/Cargo.toml
 npm ci
-npm run test:desktop -- src-tauri/target/release/snowline-desktop.exe
+npm test
+npm run check
+npm run audit:source
+npm run build
+node scripts/rust-desktop-check.mjs src-tauri/target/release/snowline-desktop.exe
 npm run package:windows
 ```
 
-## 内容权利与隐私
+Interface text is centralized in `web/translations.mjs` and applied by `web/i18n.mjs`. Translate interface messages only: never pass lyric text, song metadata, imported filenames or candidate titles through the translator. See [verification records](docs/VERIFICATION.md) and [contributing](CONTRIBUTING.md).
 
-代码为 MIT 许可；歌词、歌曲、艺人信息和第三方软件有各自权利。软件许可不构成歌词展示授权。本仓库不包含真实歌词、音频或用户缓存；不要提交本机应用数据。
+## License
 
-不录音、不读取音乐账号或 Cookies、不采集遥测。本项目与 YouTube、Google、Microsoft、LRCLIB 及其他歌词服务没有隶属或官方背书关系。参阅 [隐私说明](PRIVACY.md)、[第三方说明](THIRD-PARTY-NOTICES.md) 和 [验证记录](docs/VERIFICATION.md)。
+Project code and documentation are MIT licensed. Lyrics, recordings, artist information and third-party software retain their respective rights. Do not commit real lyrics, music, local profiles or credentials to public repositories. The project is not affiliated with or endorsed by Microsoft, YouTube, Google or the lyric providers.

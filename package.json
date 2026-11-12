@@ -1,7 +1,7 @@
 {
   "name": "snowline-lyrics",
   "productName": "Snowline Lyrics",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "A native Rust and Tauri Windows lyric board with synchronized lyrics.",
   "private": true,
   "license": "MIT",
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "cargo run --manifest-path src-tauri/Cargo.toml",
-    "test": "cargo test --manifest-path rust/core/Cargo.toml && cargo test --manifest-path src-tauri/Cargo.toml",
+    "test": "node scripts/i18n-check.mjs && cargo test --manifest-path rust/core/Cargo.toml && cargo test --manifest-path src-tauri/Cargo.toml",
     "check": "node scripts/check.mjs",
     "build": "cargo build --release --manifest-path src-tauri/Cargo.toml",
     "package:windows": "node scripts/package-rust.mjs",

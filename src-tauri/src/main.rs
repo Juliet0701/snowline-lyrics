@@ -18,16 +18,69 @@ struct StateData {
 }
 #[tauri::command]
 async fn api(
+    app: tauri::AppHandle,
     state: State<'_, StateData>,
     path: String,
     data: Option<Value>,
 ) -> Result<Value, String> {
     let backend = state.backend.clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let update_native = path == "settings";
+    let result = tauri::async_runtime::spawn_blocking(move || {
         backend::route(&backend, &path, data.unwrap_or(Value::Null))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())??;
+    if update_native {
+        refresh_native_language(&app)?;
+    }
+    Ok(result)
+}
+fn english_ui(app: &tauri::AppHandle) -> bool {
+    app.state::<StateData>().backend.lock().unwrap().settings["language"].as_str() == Some("en")
+}
+fn refresh_native_language(app: &tauri::AppHandle) -> Result<(), String> {
+    let en = english_ui(app);
+    if let Some(w) = app.get_webview_window("settings") {
+        w.set_title(if en {
+            "Snowline Lyrics · Settings"
+        } else {
+            "Snowline Lyrics · 设置"
+        })
+        .map_err(|e| e.to_string())?;
+    }
+    if let Some(tray) = app.tray_by_id("main") {
+        let show = MenuItem::with_id(
+            app,
+            "show",
+            if en {
+                "Show lyric board"
+            } else {
+                "显示歌词板"
+            },
+            true,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        let settings = MenuItem::with_id(
+            app,
+            "settings",
+            if en { "Settings" } else { "设置" },
+            true,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        let quit = MenuItem::with_id(
+            app,
+            "quit",
+            if en { "Quit" } else { "退出" },
+            true,
+            None::<&str>,
+        )
+        .map_err(|e| e.to_string())?;
+        let menu = Menu::with_items(app, &[&show, &settings, &quit]).map_err(|e| e.to_string())?;
+        tray.set_menu(Some(menu)).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 fn show_settings(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(w) = app.get_webview_window("settings") {
@@ -39,7 +92,11 @@ fn show_settings(app: &tauri::AppHandle) -> Result<(), String> {
             "settings",
             tauri::WebviewUrl::App("settings.html".into()),
         )
-        .title("Snowline Lyrics · 设置")
+        .title(if english_ui(app) {
+            "Snowline Lyrics · Settings"
+        } else {
+            "Snowline Lyrics · 设置"
+        })
         .inner_size(960.0, 780.0)
         .min_inner_size(720.0, 550.0)
         .build()
@@ -203,15 +260,38 @@ fn main() {
                 }
             }
             let _ = board.show();
-            let show = MenuItem::with_id(app, "show", "显示歌词板", true, None::<&str>)?;
-            let settings = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+            let en = english_ui(app);
+            let show = MenuItem::with_id(
+                app,
+                "show",
+                if en {
+                    "Show lyric board"
+                } else {
+                    "显示歌词板"
+                },
+                true,
+                None::<&str>,
+            )?;
+            let settings = MenuItem::with_id(
+                app,
+                "settings",
+                if en { "Settings" } else { "设置" },
+                true,
+                None::<&str>,
+            )?;
+            let quit = MenuItem::with_id(
+                app,
+                "quit",
+                if en { "Quit" } else { "退出" },
+                true,
+                None::<&str>,
+            )?;
             let menu = Menu::with_items(app, &[&show, &settings, &quit])?;
             let mut rgba = vec![0u8; 32 * 32 * 4];
             for pixel in rgba.chunks_exact_mut(4) {
                 pixel.copy_from_slice(&[110, 200, 170, 255]);
             }
-            TrayIconBuilder::new()
+            TrayIconBuilder::with_id("main")
                 .icon(tauri::image::Image::new_owned(rgba, 32, 32))
                 .tooltip("Snowline Lyrics")
                 .menu(&menu)

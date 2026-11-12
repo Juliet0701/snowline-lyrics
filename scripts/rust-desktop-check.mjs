@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
 import assert from 'node:assert/strict';
 const exe=resolve(process.argv[2]||'src-tauri/target/debug/snowline-desktop.exe');
-const profile=await mkdtemp(join(tmpdir(),'snowline-rust-desktop-'));
+await mkdir('.local',{recursive:true});const profile=await mkdtemp(resolve('.local/language-desktop-'));
 await mkdir('test-results',{recursive:true});
 const child=spawn(exe,[],{windowsHide:true,env:{...process.env,SNOWLINE_RUST_TEST_DATA:profile,SNOWLINE_RUST_FIXTURE:'1',WEBVIEW2_USER_DATA_FOLDER:join(profile,'webview'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:'--remote-debugging-port=18749'},stdio:['ignore','pipe','pipe']});
 let log='',browser,board;child.stdout.on('data',d=>log+=d);child.stderr.on('data',d=>log+=d);const exit=new Promise(r=>child.once('exit',r));
@@ -23,11 +23,22 @@ try{
  assert.equal(await board.locator('#full-text').getAttribute('data-tauri-drag-region'),'false');
  assert.equal(await board.locator('nav').getAttribute('data-tauri-drag-region'),'false');
  const api=(path,data)=>board.evaluate(({path,data})=>window.__TAURI__.core.invoke('api',{path,data}),{path,data});
+ await api('settings',{language:'zh-CN'});
  const playback={trackId:'test-original',source:'fixture',title:'原创测试',artist:'原创作者',durationMs:30000,positionMs:10000,paused:true,pauseKnown:true,rate:1,timelineAvailable:true,capturedAt:Date.now()};
  await api('__test/playback',playback);
  await board.locator('#settings').click();settings=await retry(async()=>{const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(!p)throw Error('Settings unavailable');return p;});settings.on('pageerror',e=>errors.push(e.message));await settings.bringToFront();await settings.waitForFunction(()=>document.querySelector('#title').textContent==='原创测试');
  await settings.locator('#lrc-file').setInputFiles({name:'original.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:00]原创第一句\n[00:10]原创第二句\n[00:20]原创第三句')});
  await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二句');
+ // A lyric equal to a UI message ID must remain original text in both languages.
+ await api('lrc',{trackId:playback.trackId,lrc:'[00:00]等待音乐响起\n[00:10]Settings'});await api('__test/playback',{...playback,positionMs:0});
+ await board.waitForFunction(()=>document.querySelector('#current').textContent==='等待音乐响起');
+ await settings.locator('[data-language=en]').click();await settings.waitForFunction(()=>document.documentElement.lang==='en');await board.waitForFunction(()=>document.documentElement.lang==='en'&&document.querySelector('#settings').textContent==='Settings');
+ assert.equal(await board.locator('#current').textContent(),'等待音乐响起');assert.equal(await settings.locator('#title').textContent(),'原创测试');assert.equal(await settings.locator('#show-board').textContent(),'Show lyric board');assert.equal(await board.locator('[data-language]').count(),0);assert.equal(await board.locator('#reload').getAttribute('title'),'Find lyrics again');
+ const untranslated=await settings.evaluate(()=>{const skip='#title,#artist,#current,#next,#full-text,#manual-lines,#versions,[data-language]';const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),out=[];while(walker.nextNode()){const node=walker.currentNode;if(node.parentElement?.closest(skip))continue;if(/[\u3400-\u9fff]/u.test(node.nodeValue))out.push(node.nodeValue.trim());}return out;});assert.deepEqual(untranslated,[],'All interface text should switch, excluding song metadata and lyrics');
+ await settings.screenshot({path:'test-results/settings-en.png'});await board.screenshot({path:'test-results/board-en.png',omitBackground:true});
+ await settings.locator('[data-language="zh-CN"]').click();await board.waitForFunction(()=>document.documentElement.lang==='zh-CN'&&document.querySelector('#settings').textContent==='设置');
+ await api('lrc',{trackId:playback.trackId,lrc:'[00:00]原创第一句\n[00:10]原创第二句\n[00:20]原创第三句'});await api('__test/playback',playback);await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二句');
+
  await settings.locator('#lyrics-color').fill('#ffcc00');await settings.locator('#lyrics-color').dispatchEvent('change');
  await board.waitForFunction(()=>['#current','.brand','footer'].every(q=>getComputedStyle(document.querySelector(q)).color==='rgb(255, 204, 0)'));
  await settings.locator('#overlay-dark').click();await board.waitForFunction(()=>getComputedStyle(document.querySelector('.board'),'::before').backgroundImage.includes('rgba(0, 0, 0, 0.35)'));
@@ -43,15 +54,18 @@ try{
  await settings.locator('.lyric-choice').nth(1).click();await settings.locator('#align-start').click();
  await board.waitForFunction(()=>document.querySelector('#status').textContent.includes('手动对齐'));
  await settings.locator('#manual-toggle').click();await board.waitForFunction(()=>document.querySelector('#status').textContent.includes('已暂停'));
+ await settings.locator('[data-language=en]').click();await board.waitForFunction(()=>document.documentElement.lang==='en'&&document.querySelector('#status').textContent.includes('Manual alignment'));assert.equal((await api('state')).manualAligned,true);assert.equal((await api('state')).displayPlayback.paused,true);
+ await settings.locator('[data-language="zh-CN"]').click();await board.waitForFunction(()=>document.documentElement.lang==='zh-CN');
+
  await settings.locator('#lrc-file').setInputFiles({name:'original.txt',mimeType:'text/plain',buffer:Buffer.from(Array.from({length:60},(_,i)=>'原创全文第'+i+'行').join('\n'))});
  await board.waitForFunction(()=>!document.querySelector('#full-text').hidden);
  await board.evaluate(()=>document.querySelector('#full-text').scrollTop=100);await board.waitForTimeout(1100);assert.ok(await board.evaluate(()=>document.querySelector('#full-text').scrollTop)>0);
  await settings.locator('[data-settings-tab=playback]').click();await settings.locator('#offset').fill('1000');await settings.locator('#offset').dispatchEvent('change');await board.waitForTimeout(600);
  await board.locator('#pin').click();await board.waitForFunction(()=>document.querySelector('#pin').getAttribute('aria-pressed')==='false');
- await board.evaluate(()=>window.boardHost.action('close-settings'));await board.waitForTimeout(2000);
+ await settings.locator('[data-language=en]').click();await board.waitForFunction(()=>document.documentElement.lang==='en');await board.evaluate(()=>window.boardHost.action('close-settings'));await board.waitForTimeout(2000);
  const ps=`$all=Get-CimInstance Win32_Process; $ids=@(${child.pid}); do { $more=@($all | Where-Object { $_.ParentProcessId -in $ids -and $_.ProcessId -notin $ids } | Select-Object -ExpandProperty ProcessId); $ids += $more } while($more.Count); $own=@($all | Where-Object { $_.ProcessId -in $ids }); @{processes=$own.Count;workingSetBytes=($own | Measure-Object WorkingSetSize -Sum).Sum} | ConvertTo-Json -Compress`;
  const memory=JSON.parse(execFileSync('pwsh',['-NoProfile','-Command',ps],{encoding:'utf8'}));await writeFile('test-results/rust-memory.json',JSON.stringify({...memory,note:'One process-tree working-set snapshot after closing the lazily-created settings window, with test lyrics; includes WebView2 and shared pages, not a guaranteed memory limit.'},null,2));console.log('Process-tree memory snapshot: '+Math.round(memory.workingSetBytes/1048576)+' MiB across '+memory.processes+' processes.');
- await board.locator('#settings').click();const reopened=await retry(async()=>{const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(!p)throw Error('Settings did not reopen');return p;});await reopened.waitForFunction(()=>document.querySelector('#lyrics-color').value==='#ffcc00'&&document.querySelector('#text-shadow').checked);await board.evaluate(()=>window.boardHost.action('close-settings'));
+ await board.locator('#settings').click();const reopened=await retry(async()=>{const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(!p)throw Error('Settings did not reopen');return p;});await reopened.waitForFunction(()=>document.documentElement.lang==='en'&&document.querySelector('[data-language=en]').getAttribute('aria-pressed')==='true'&&document.querySelector('#lyrics-color').value==='#ffcc00'&&document.querySelector('#text-shadow').checked);await board.evaluate(()=>window.boardHost.action('close-settings'));
  assert.deepEqual(errors,[]);console.log('Rust desktop checks passed: native IPC, sync/import, colors, overlays, shadow, images, manual timing, plain scrolling, offset and pin.');
  await board.evaluate(()=>window.boardHost.action('quit-test')).catch(e=>{if(!/closed|destroyed|detached/i.test(e.message))throw e;});assert.equal(await exit,0);
 }catch(e){console.error(log);if(board){console.error(await board.evaluate(()=>({text:document.body.innerText,tauri:!!window.__TAURI__})).catch(()=>({})));await board.screenshot({path:'test-results/rust-failure.png'}).catch(()=>{});const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(p)console.error(await p.evaluate(()=>document.body.innerText).catch(()=>''));}throw e;}finally{await browser?.close().catch(()=>{});if(child.exitCode===null){child.kill();await exit;}await writeFile('test-results/rust-desktop.log',log);}
