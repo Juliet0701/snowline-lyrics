@@ -6,7 +6,7 @@
 
 ## 下载与运行
 
-1. 从 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.6.0-win-x64.zip`，完整解压。
+1. 从 [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) 下载 `Snowline-Lyrics-0.6.1-win-x64.zip`，完整解压。
 2. 先从托盘退出旧版本，再运行 `SnowlineLyrics.exe`。
 3. 在音乐软件播放歌曲，打开设置选择播放器、确认歌词版本或调整外观。
 

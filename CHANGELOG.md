@@ -1,3 +1,7 @@
+# 0.6.1
+
+- Restore and focus minimized Settings when opened from the lyric board or tray menu.
+
 # 0.6.0
 
 - Place background and lyric color controls side by side in Settings.

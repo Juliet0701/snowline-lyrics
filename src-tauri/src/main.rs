@@ -84,6 +84,7 @@ fn refresh_native_language(app: &tauri::AppHandle) -> Result<(), String> {
 }
 fn show_settings(app: &tauri::AppHandle) -> Result<(), String> {
     if let Some(w) = app.get_webview_window("settings") {
+        w.unminimize().map_err(|e| e.to_string())?;
         w.show().map_err(|e| e.to_string())?;
         w.set_focus().map_err(|e| e.to_string())?;
     } else {

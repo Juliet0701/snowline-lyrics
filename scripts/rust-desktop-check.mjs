@@ -27,6 +27,13 @@ try{
  const playback={trackId:'test-original',source:'fixture',title:'原创测试',artist:'原创作者',durationMs:30000,positionMs:10000,paused:true,pauseKnown:true,rate:1,timelineAvailable:true,capturedAt:Date.now()};
  await api('__test/playback',playback);
  await board.locator('#settings').click();settings=await retry(async()=>{const p=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('settings.html'));if(!p)throw Error('Settings unavailable');return p;});settings.on('pageerror',e=>errors.push(e.message));await settings.bringToFront();await settings.waitForFunction(()=>document.querySelector('#title').textContent==='原创测试');
+ // Exercise the native minimized state; showing an existing window alone does not restore it.
+ const settingsWindow=action=>JSON.parse(execFileSync('pwsh',['-NoProfile','-File',resolve('scripts/settings-window-check.ps1'),'-AppProcessId',String(child.pid),'-Action',action],{encoding:'utf8'}));
+ await settings.evaluate(()=>window.__restoreProbe='same-settings-window');
+ const minimized=settingsWindow('minimize');assert.equal(minimized.minimized,true,'Settings must be genuinely minimized before the regression check');
+ await board.locator('#settings').click();
+ await retry(()=>{const current=settingsWindow('state');assert.equal(current.minimized,false,'Opening settings must restore its minimized window');assert.equal(current.foreground,true,'Restored settings should receive focus');assert.equal(current.handle,minimized.handle,'Reuse the existing settings window');});
+ assert.equal(await settings.evaluate(()=>window.__restoreProbe),'same-settings-window');console.log('Minimized Settings restored and focused from the board; existing window retained.');
  await settings.locator('#lrc-file').setInputFiles({name:'original.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:00]原创第一句\n[00:10]原创第二句\n[00:20]原创第三句')});
  await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二句');
  // A lyric equal to a UI message ID must remain original text in both languages.

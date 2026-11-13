@@ -6,7 +6,7 @@ A floating lyric board for Windows, built with Rust and Tauri 2. It reads system
 
 ## Download and run
 
-1. Download `Snowline-Lyrics-0.6.0-win-x64.zip` from [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) and extract the complete archive.
+1. Download `Snowline-Lyrics-0.6.1-win-x64.zip` from [Releases](https://github.com/Juliet0701/snowline-lyrics/releases) and extract the complete archive.
 2. Quit the previous version from its tray menu, then open `SnowlineLyrics.exe`.
 3. Play a song in your music app. Open **Settings** to select a player, confirm a lyric version, or customize the board.
 

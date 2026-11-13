@@ -1,4 +1,4 @@
-Snowline Lyrics 0.6.0 — Rust + Tauri
+Snowline Lyrics 0.6.1 — Rust + Tauri
 
 1. Exit the old application using its tray menu.
 2. Extract the complete ZIP and run SnowlineLyrics.exe.
