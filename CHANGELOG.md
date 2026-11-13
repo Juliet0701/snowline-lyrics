@@ -1,5 +1,7 @@
 # 0.6.0
 
+- Place background and lyric color controls side by side in Settings.
+
 - Add persistent Simplified Chinese / English interface selection in settings only; board follows automatically.
 - Localize window titles, tray actions, status messages, tooltips and accessibility labels without translating song metadata or lyrics.
 - Provide English README.md and Chinese README.zh-CN.md.

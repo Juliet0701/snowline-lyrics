@@ -1,7 +1,8 @@
 # Snowline Lyrics 0.6.0 · Preview
 
-## 中文 / English
+## 中文
 
+- 外观设置中的背景颜色与歌词颜色并排显示。
 - 在设置板顶部一键切换中文和 English，选择自动保存。
 - 歌词板不增加语言按钮，界面文案、提示和状态跟随设置；设置窗口标题及托盘菜单也同步切换。
 - 歌名、歌手、歌词和本地文件名保持原文。切换语言不重新查歌词、不重置手动计时。
@@ -11,3 +12,17 @@
 本版基于 0.5.1，保留其窗口大小、字号、样式和拖动方式。没有合入 0.5.2 / 0.5.3 的尺寸及缩放热区改动。
 
 下载 Windows 便携包后完整解压。先从托盘退出旧版，再运行 SnowlineLyrics.exe。原有图片、缓存及配置保留。
+
+
+## English
+
+- Switch between Chinese and English at the top of Settings; your choice is saved.
+- The lyric board, settings window title and tray menu follow the selected language. The board has no extra language button.
+- Song titles, artists, lyrics and local filenames stay in their original language. Switching languages preserves manual timing and lyric searches.
+- First launch follows the system language, with English as the fallback.
+- English and Chinese READMEs link to each other.
+- Background and lyric color controls now appear side by side.
+
+Based on 0.5.1, preserving its board dimensions, fonts, appearance and dragging behavior.
+
+Download and fully extract the Windows portable ZIP. Exit the previous version from its tray menu, then run `SnowlineLyrics.exe`. Existing settings, images and cached lyrics are retained. Windows WebView2 Runtime is required.
