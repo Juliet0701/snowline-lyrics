@@ -1,3 +1,13 @@
+# Verification — 0.6.1 / 2026-11-13
+
+- Reproduced the reported failure with the released 0.6.0 binary: Settings stayed natively minimized after the lyric board Settings button was clicked.
+- Remote Windows workflow 43391827156 passed tests, compilation checks and portable packaging. Runtime build commit: 3c71b0a1b634c21edf9ecf30812186fa79742756.
+- Verified the downloaded archive checksum before testing.
+- Native regression passed against 0.6.1: minimize the isolated Settings window using Windows APIs, click Settings on the lyric board, then assert the same native window handle is restored and is the foreground window. A JavaScript marker confirms the existing view is retained.
+- The board button and tray Settings menu share the corrected restore-before-show-and-focus path.
+- The existing desktop checks passed for localization, imports, synchronization, appearance, manual timing, scrolling, offset and pin.
+- Tests used isolated profiles and never minimized the user's own app. Compilation remained remote; no local build cache was created.
+
 # Verification — 0.6.0 / 2026-11-12
 
 - Based on the restored 0.5.1 baseline. Board CSS and drag markup are unchanged; window configuration differs only in the version field.
