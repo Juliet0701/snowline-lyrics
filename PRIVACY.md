@@ -13,3 +13,5 @@ The interface is local and uses Tauri IPC; there is no listening loopback HTTP s
 ## Interface language
 
 The interface language is stored locally in settings.json and cached in local WebView2 storage for initial rendering. First use reads the local browser/system language preference. It is not sent to lyric providers and does not use a translation service. Song metadata, lyric text and local filenames are not translated.
+
+Manual title/artist search keywords and per-song timing offsets are stored locally in track-preferences.json. Submitting or retrying a search sends the saved keywords to the same enabled lyric providers as automatic searches. Font sizes stay local. Confirmed lyric versions remain in the local lyric library.

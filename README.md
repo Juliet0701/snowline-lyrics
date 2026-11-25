@@ -12,6 +12,14 @@ A floating lyric board for Windows, built with Rust and Tauri 2. It reads system
 
 Requires Windows 10/11 x64 and Microsoft Edge WebView2 Runtime. You do not need Node.js, Rust, a browser extension, a music-account login or an API key to use the portable application. This is an unsigned preview; Windows 11 has been tested, while Windows 10 and every third-party player have not been individually verified.
 
+## Search and personalization
+
+- Expand **Edit search keywords** under the song to correct its title or artist, then search and confirm a lyric version. **Use original player metadata** clears the correction. The player title stays unchanged.
+- Confirmed lyric versions, corrected keywords and timing offsets are saved locally for that song and restored after track changes or restarts. Songs are identified by player title, artist and duration; different metadata or recordings can have separate saved choices.
+- Under **Appearance → Lyric font sizes**, adjust the current and next line independently. Custom sizes stay fixed when resizing; restoring defaults preserves the previous display behavior. The current-line size also applies to plain-text lyrics.
+- Existing player detection, manual alignment, backgrounds, languages and minimized-settings restoration remain available.
+
+
 ## Switch the interface language
 
 Click **中文** or **English** at the top of the settings window. Your choice is saved, and the lyric board, window title and tray menu follow it. There is no extra language button on the board.

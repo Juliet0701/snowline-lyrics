@@ -1,3 +1,10 @@
+# 0.7.0
+
+- Add a per-song editable title/artist search form, original-metadata reset, and explicit lyric version confirmation for custom queries.
+- Persist per-song timing offsets across track changes and restarts; retain chosen lyric versions in the local library.
+- Add current/next-line font controls and a separate restore-default action. Custom sizes stay fixed on window resize; untouched defaults retain existing typography.
+- Include the minimized Settings restore fix from 0.6.1.
+
 # 0.6.1
 
 - Restore and focus minimized Settings when opened from the lyric board or tray menu.
