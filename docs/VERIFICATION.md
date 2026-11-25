@@ -1,3 +1,13 @@
+# Verification — 0.7.0 / 2026-11-26
+
+- Remote Windows workflow 45714887148 succeeded for runtime commit 080ca09114076182daf153e1fd85a469e0d80276: language checks, Rust tests, compilation checks, optimized build and packaging.
+- New backend tests cover selected-version and per-song-offset persistence across track changes/restart, corrected query restoration without changing playback metadata, invalid/stale query rejection, numeric font validation, persistence and old appearance migration.
+- Downloaded portable archive checksum verified against the workflow artifact before execution.
+- Actual Windows/WebView2 desktop checks passed: edit title/artist and search fixture candidates, select a version, store offset, change tracks and return, recover the query/version/offset, update both font controls and restore defaults.
+- Existing desktop checks passed for minimized-settings restore/focus, original lyrics, language changes, imports, backgrounds/overlays, manual alignment, scrolling, timing offset and pin.
+- Browser localization checks passed for English UI coverage and board controls at the minimum window size.
+- Tests used isolated fixture lyrics and local profiles. Compilation ran remotely; no large local build cache was created.
+
 # Verification — 0.6.1 / 2026-11-13
 
 - Reproduced the reported failure with the released 0.6.0 binary: Settings stayed natively minimized after the lyric board Settings button was clicked.
