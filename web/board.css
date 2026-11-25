@@ -8,3 +8,5 @@
 .brand,nav button,footer,#current,#next,#full-text{text-shadow:var(--text-shadow,none)}
 
 .board{user-select:none}#full-text{user-select:text}.brand{flex:1;align-self:stretch}#track{align-self:center}
+
+#current{font-size:var(--current-font-size,clamp(19px,4.2vw,30px))}#next{font-size:var(--next-font-size,clamp(12px,2.3vw,16px))}#full-text{font-size:var(--current-font-size,clamp(15px,2.6vw,20px))}

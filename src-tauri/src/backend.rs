@@ -24,7 +24,7 @@ fn flag(v: &Value, k: &str) -> bool {
     v[k].as_bool().unwrap_or(false)
 }
 pub fn defaults() -> Value {
-    json!({"backgroundColor":"#14232e","lyricsColor":"#def4e7","opacity":0.95,"image":null,"imageName":"","overlayColor":"black","overlayOpacity":0.0,"textShadow":false})
+    json!({"backgroundColor":"#14232e","lyricsColor":"#def4e7","opacity":0.95,"image":null,"imageName":"","overlayColor":"black","overlayOpacity":0.0,"textShadow":false,"currentFontSize":null,"nextFontSize":null})
 }
 fn lines(raw: &str) -> Value {
     json!(snowline_core::parse_lrc(raw)
@@ -67,6 +67,7 @@ pub struct Backend {
     pub appearance: Value,
     pub settings: Value,
     pub library: Value,
+    pub track_preferences: Value,
     pub playback: Value,
     pub media: Value,
     pub preferred: String,
@@ -102,7 +103,10 @@ impl Backend {
         if !library.is_object() {
             library = json!({});
         }
+        let mut track_preferences = load("track-preferences.json", json!({}));
+        if !track_preferences.is_object() { track_preferences = json!({}); }
         Self {
+            track_preferences,
             settings,
             library,
             dir,
@@ -124,6 +128,17 @@ impl Backend {
         std::fs::write(&tmp, serde_json::to_vec(v).map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?;
         std::fs::rename(tmp, path).map_err(|e| e.to_string())
+    }
+    fn query_playback(&self) -> Value {
+        let mut p = self.playback.clone();
+        let q = &self.track_preferences[text(&p, "trackId")]["query"];
+        if q["title"].as_str().map(|s| !s.trim().is_empty() && s.chars().count() <= 200).unwrap_or(false)
+            && q["artist"].as_str().map(|s| s.chars().count() <= 200).unwrap_or(false) {
+            p["title"] = q["title"].clone();
+            p["artist"] = q["artist"].clone();
+            p["manualQuery"] = json!(true);
+        }
+        p
     }
     fn entry(&self) -> Value {
         self.library
@@ -164,6 +179,7 @@ impl Backend {
             );
         }
         if text(&p, "trackId") != text(&self.playback, "trackId") {
+            self.offset = self.track_preferences[text(&p, "trackId")]["offsetMs"].as_i64().filter(|v| (-30000..=30000).contains(v)).unwrap_or(0);
             self.generation += 1;
             self.lookup = json!({"status":"idle","candidates":[]});
             self.last_query = 0;
@@ -248,7 +264,7 @@ impl Backend {
             .map(hash)
             .unwrap_or_default());
         appearance.as_object_mut().unwrap().remove("image");
-        json!({"playback":p,"displayPlayback":display,"settings":self.settings,"appearance":appearance,"mode":mode,"manualAligned":!self.manual.is_null(),"media":self.media,"lines":lyric_lines,"text":body,"offsetMs":self.offset,"lyrics":lyrics,"stale":p.is_null()||now-num(p,"receivedAt")>6000,"serverNow":now,"demo":self.demo})
+        json!({"searchQuery":{"title":self.query_playback()["title"],"artist":self.query_playback()["artist"],"custom":flag(&self.query_playback(),"manualQuery")},"playback":p,"displayPlayback":display,"settings":self.settings,"appearance":appearance,"mode":mode,"manualAligned":!self.manual.is_null(),"media":self.media,"lines":lyric_lines,"text":body,"offsetMs":self.offset,"lyrics":lyrics,"stale":p.is_null()||now-num(p,"receivedAt")>6000,"serverNow":now,"demo":self.demo})
     }
 }
 pub fn apply_media(shared: &Shared, snapshot: Result<media::Snapshot, String>) {
@@ -628,7 +644,7 @@ pub fn start_search(shared: &Shared, force: bool) -> Result<(), String> {
         b.last_query = now;
         b.generation += 1;
         b.lookup = json!({"status":"searching","message":"正在查找歌词…","candidates":[]});
-        (b.playback.clone(), b.settings.clone(), b.generation)
+        (b.query_playback(), b.settings.clone(), b.generation)
     };
     let shared = shared.clone();
     JOBS.fetch_add(1, Ordering::Relaxed);
@@ -659,7 +675,7 @@ pub fn start_search(shared: &Shared, force: bool) -> Result<(), String> {
             return;
         }
         let existing = b.entry();
-        let selected = automatic(&all);
+        let selected = if flag(&p, "manualQuery") { None } else { automatic(&all) };
         b.lookup = json!({"status":if all.is_empty(){if warning.is_empty(){"not-found"}else{"error"}}else{"choose"},"message":if all.is_empty(){"未找到歌词，可重试、开启备用源或导入自己的文件"}else{"找到歌词，请确认版本"},"warning":warning,"candidates":all});
         if !existing.is_null()
             && (text(&existing, "source") == "local" || flag(&existing, "selectedManually"))
@@ -684,9 +700,28 @@ pub fn route(shared: &Shared, path: &str, data: Value) -> Result<Value, String> 
     }
 
     if path == "lyrics/search" {
-        let b = shared.lock().unwrap();
-        if data["trackId"] != b.playback["trackId"] {
+        let mut b = shared.lock().unwrap();
+        if b.playback.is_null() || data["trackId"] != b.playback["trackId"] {
             return Err("歌曲已切换".into());
+        }
+        if data.get("title").is_some() || data.get("artist").is_some() || flag(&data, "resetQuery") {
+            let id = text(&b.playback, "trackId");
+            let query = if flag(&data, "resetQuery") { Value::Null } else {
+                let title = data["title"].as_str().ok_or("请输入搜索歌名")?.trim();
+                let artist = data["artist"].as_str().ok_or("无效搜索歌手")?.trim();
+                if title.is_empty() || title.chars().count() > 200 || artist.chars().count() > 200 {
+                    return Err("歌名不能为空，歌名和歌手各限 200 字".into());
+                }
+                json!({"title":title,"artist":artist})
+            };
+            let mut prefs = b.track_preferences.clone();
+            if !prefs[&id].is_object() { prefs[&id] = json!({}); }
+            prefs[&id]["query"] = query;
+            b.save("track-preferences.json", &prefs)?;
+            b.track_preferences = prefs;
+            b.generation += 1;
+            b.lookup = json!({"status":"idle","candidates":[]});
+            b.last_query = 0;
         }
         drop(b);
         start_search(shared, true)?;
@@ -695,7 +730,7 @@ pub fn route(shared: &Shared, path: &str, data: Value) -> Result<Value, String> 
     let mut b = shared.lock().unwrap();
     let now = media::now_ms();
     match path {
-        "bootstrap" => return Ok(json!({"token":"native-ipc","version":"0.5.0"})),
+        "bootstrap" => return Ok(json!({"token":"native-ipc","version":env!("CARGO_PKG_VERSION")})),
         "state" => {
             if !b.demo && !b.playback.is_null() && now - num(&b.playback, "receivedAt") > 6500 {
                 b.playback = Value::Null;
@@ -725,9 +760,16 @@ pub fn route(shared: &Shared, path: &str, data: Value) -> Result<Value, String> 
         }
         "offset" => {
             let value = data["offsetMs"].as_i64().ok_or("无效时间偏移")?;
-            if value.abs() > 30000 {
+            if !(-30000..=30000).contains(&value) {
                 return Err("时间偏移超出范围".into());
             }
+            if b.playback.is_null() || (data.get("trackId").is_some() && data["trackId"] != b.playback["trackId"]) { return Err("歌曲已切换".into()); }
+            let id = text(&b.playback, "trackId");
+            let mut prefs = b.track_preferences.clone();
+            if !prefs[&id].is_object() { prefs[&id] = json!({}); }
+            prefs[&id]["offsetMs"] = json!(value);
+            b.save("track-preferences.json", &prefs)?;
+            b.track_preferences = prefs;
             b.offset = value;
         }
         "settings" => {
@@ -856,6 +898,11 @@ pub fn route(shared: &Shared, path: &str, data: Value) -> Result<Value, String> 
     Ok(json!({"ok":true}))
 }
 fn validate_appearance(a: &Value) -> Result<(), String> {
+    for (key, min, max) in [("currentFontSize",16,64),("nextFontSize",10,36)] {
+        if !a[key].is_null() && !a[key].as_u64().map(|v| (min..=max).contains(&v)).unwrap_or(false) {
+            return Err("无效歌词字号".into());
+        }
+    }
     for k in ["backgroundColor", "lyricsColor"] {
         let v = text(a, k);
         if v.len() != 7 || !v.starts_with('#') || !v[1..].chars().all(|c| c.is_ascii_hexdigit()) {
@@ -910,6 +957,58 @@ mod tests {
     }
     fn playback(timeline: bool) -> Value {
         json!({"trackId":"test","source":"test","title":"原创","artist":"原创","durationMs":30000,"positionMs":0,"rate":1,"paused":false,"pauseKnown":true,"timelineAvailable":timeline})
+    }
+    #[test]
+    fn selected_version_and_offset_survive_track_changes_and_restart() {
+        let shared = make();
+        shared.lock().unwrap().ingest(playback(true));
+        {
+            let mut b = shared.lock().unwrap();
+            b.lookup = json!({"candidates":[{"id":"chosen","title":"Original","artist":"Author","provider":"lrclib","lines":[{"timeMs":0,"text":"Original line"}],"text":"Original line"}]});
+        }
+        route(&shared,"lyrics/select",json!({"trackId":"test","id":"chosen"})).unwrap();
+        route(&shared,"offset",json!({"trackId":"test","offsetMs":-1700})).unwrap();
+        assert!(route(&shared,"offset",json!({"trackId":"stale","offsetMs":200})).is_err());
+        assert!(route(&shared,"offset",json!({"offsetMs":i64::MIN})).is_err());
+        let dir = {
+            let mut b = shared.lock().unwrap();
+            b.track_preferences["test"]["query"] = json!({"title":"Corrected title","artist":""});
+            b.save("track-preferences.json", &b.track_preferences).unwrap();
+            let mut other = playback(true); other["trackId"] = json!("other");
+            b.ingest(other); assert_eq!(b.offset,0);
+            b.ingest(playback(true)); assert_eq!(b.offset,-1700);
+            assert_eq!(b.entry()["recordId"],"chosen");
+            b.dir.clone()
+        };
+        let mut reopened = Backend::new(dir.clone());
+        reopened.ingest(playback(true));
+        assert_eq!(reopened.offset,-1700);
+        assert_eq!(reopened.entry()["recordId"],"chosen");
+        assert_eq!(reopened.entry()["selectedManually"],true);
+        assert_eq!(reopened.query_playback()["title"],"Corrected title");
+        assert_eq!(reopened.playback["title"],"原创");
+        assert!(route(&shared,"lyrics/search",json!({"trackId":"test","title":" ","artist":""})).is_err());
+        assert!(route(&shared,"lyrics/search",json!({"trackId":"stale","title":"Title","artist":""})).is_err());
+        assert!(route(&shared,"lyrics/search",json!({"trackId":"test","title":"x".repeat(201),"artist":""})).is_err());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn custom_font_sizes_persist_and_migrate_old_appearance() {
+        let shared=make();
+        route(&shared,"appearance",json!({"currentFontSize":40,"nextFontSize":22})).unwrap();
+        let dir=shared.lock().unwrap().dir.clone();
+        let reloaded=Backend::new(dir.clone());
+        assert_eq!(reloaded.appearance["currentFontSize"],40);
+        assert_eq!(reloaded.appearance["nextFontSize"],22);
+        for patch in [json!({"currentFontSize":0}),json!({"currentFontSize":65}),json!({"nextFontSize":37}),json!({"currentFontSize":"30"})] {
+            assert!(route(&shared,"appearance",patch).is_err());
+        }
+        route(&shared,"appearance",json!({"currentFontSize":null,"nextFontSize":null})).unwrap();
+        assert!(Backend::new(dir.clone()).appearance["currentFontSize"].is_null());
+        let mut old=defaults();old.as_object_mut().unwrap().remove("currentFontSize");old.as_object_mut().unwrap().remove("nextFontSize");old["lyricsColor"]=json!("#123456");
+        std::fs::write(dir.join("appearance.json"),old.to_string()).unwrap();
+        let migrated=Backend::new(dir.clone());assert_eq!(migrated.appearance["lyricsColor"],"#123456");assert!(migrated.appearance["currentFontSize"].is_null());
+        std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]
     fn appearance_rejects_remote_and_css() {

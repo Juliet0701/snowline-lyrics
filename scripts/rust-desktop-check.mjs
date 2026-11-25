@@ -34,6 +34,27 @@ try{
  await board.locator('#settings').click();
  await retry(()=>{const current=settingsWindow('state');assert.equal(current.minimized,false,'Opening settings must restore its minimized window');assert.equal(current.foreground,true,'Restored settings should receive focus');assert.equal(current.handle,minimized.handle,'Reuse the existing settings window');});
  assert.equal(await settings.evaluate(()=>window.__restoreProbe),'same-settings-window');console.log('Minimized Settings restored and focused from the board; existing window retained.');
+ // Manual query edits must preserve player metadata, while version and offset return with the song.
+ await settings.locator('#search-details summary').click();
+ await settings.locator('#search-title').fill('Corrected song');await settings.locator('#search-artist').fill('Corrected artist');
+ await settings.locator('#search-submit').click();await settings.locator('.version').first().waitFor();
+ assert.match(await settings.locator('.version').first().textContent(),/Corrected song/);
+ assert.equal((await api('state')).playback.title,playback.title);
+ await settings.locator('.version').first().click();
+ await settings.locator('[data-settings-tab=playback]').click();await settings.locator('#offset').fill('1400');await settings.locator('#offset').dispatchEvent('change');
+ await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二句');
+ assert.equal((await api('state')).offsetMs,1400);
+ await api('__test/playback',{...playback,trackId:'another-song'});await settings.waitForFunction(()=>document.querySelector('#offset').value==='0');
+ await api('__test/playback',playback);await settings.waitForFunction(()=>document.querySelector('#offset').value==='1400'&&document.querySelector('#search-title').value==='Corrected song');
+ assert.ok((await api('state')).lyrics.recordId);
+ await settings.locator('#offset').fill('0');await settings.locator('#offset').dispatchEvent('change');
+ await settings.locator('[data-settings-tab=appearance]').click();
+ for(const [id,value] of [['current-font-size','40'],['next-font-size','22']]){await settings.locator('#'+id).fill(value);await settings.locator('#'+id).dispatchEvent('change');await settings.waitForTimeout(600);}
+ await board.waitForFunction(()=>getComputedStyle(document.querySelector('#current')).fontSize==='40px'&&getComputedStyle(document.querySelector('#next')).fontSize==='22px');
+ assert.equal(await board.locator('#current').evaluate(el=>getComputedStyle(el).fontSize),'40px');
+ await settings.locator('#reset-fonts').click();await board.waitForFunction(()=>!document.documentElement.style.getPropertyValue('--current-font-size'));
+ assert.equal((await api('state')).appearance.currentFontSize,null);
+ console.log('Song query, version/offset recall and custom font controls passed.');
  await settings.locator('#lrc-file').setInputFiles({name:'original.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:00]原创第一句\n[00:10]原创第二句\n[00:20]原创第三句')});
  await board.waitForFunction(()=>document.querySelector('#current').textContent==='原创第二句');
  // A lyric equal to a UI message ID must remain original text in both languages.

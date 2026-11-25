@@ -19,8 +19,8 @@ export function t(input){
  return key;
 }
 const textRecords=[],attributeRecords=[];
-const dynamicIds=new Set(['title','artist','current','next','status','lyrics-status','media-status','full-text','manual-hint','manual-toggle','manual-message','import-status','appearance-result','sync-backup-result','backup-result','background-name','source','versions','manual-lines','language-result']);
-const feedbackIds=['manual-message','import-status','appearance-result','sync-backup-result','backup-result','language-result'];
+const dynamicIds=new Set(['title','artist','current','next','status','lyrics-status','media-status','full-text','manual-hint','manual-toggle','manual-message','import-status','appearance-result','sync-backup-result','backup-result','background-name','source','versions','manual-lines','language-result','search-result','current-font-value','next-font-value']);
+const feedbackIds=['manual-message','import-status','appearance-result','sync-backup-result','backup-result','language-result','search-result'];
 function apply(){
  if(typeof document==='undefined')return;
  document.documentElement.lang=language;document.title=t(document.body.dataset.page==='settings'?'Snowline Lyrics · 设置':'Snowline Lyrics');
